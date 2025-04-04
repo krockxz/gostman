@@ -17,7 +17,7 @@ _If you have Go already, install the executable yourself_
 
 1. Run the following command:
    ```bash
-   go install github.com/halftoothed/gostman@latest
+   go install github.com/krockxz/gostman@latest
    ```
 2. The tool is ready to use!
     ```bash

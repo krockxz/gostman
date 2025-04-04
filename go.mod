@@ -1,4 +1,4 @@
-module github.com/halftoothed/gostman
+module github.com/krockxz/gostman
 
 go 1.23.1
 
