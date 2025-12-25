@@ -9,6 +9,7 @@ build/bin/
 # Wails
 gostman-gui/build/bin/
 gostman-gui/frontend/dist/
+gostman-gui/frontend/dist-web/
 gostman-gui/frontend/node_modules/
 
 # IDEs

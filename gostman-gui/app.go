@@ -53,11 +53,16 @@ type Request struct {
 	Response    string `json:"response"`
 }
 
+type ResponseMsg struct {
+	Body   string `json:"body"`
+	Status string `json:"status"`
+}
+
 // Globals
 var appFolder = getAppDataPath()
 var jsonfilePath = filepath.Join(appFolder, "gostman.json")
 
-// Helper Functions
+// --- Helper Functions (Private) ---
 
 func getAppDataPath() string {
 	if runtime.GOOS == "windows" {
@@ -69,59 +74,87 @@ func getAppDataPath() string {
 
 func checkFileExists(filepath string) bool {
 	_, err := os.Stat(filepath)
-	return errors.Is(err, os.ErrNotExist)
+	return !errors.Is(err, os.ErrNotExist)
 }
 
-func replacePlaceholders(url string, variables map[string]string) string {
+// getSavedData loads the entire data structure from disk.
+// It returns an empty SavedData if the file doesn't exist or errors.
+func getSavedData() SavedData {
+	if !checkFileExists(jsonfilePath) {
+		return SavedData{}
+	}
+	file, err := os.ReadFile(jsonfilePath)
+	if err != nil {
+		log.Println("Error reading file:", err)
+		return SavedData{}
+	}
+	var data SavedData
+	if len(file) > 0 {
+		json.Unmarshal(file, &data)
+	}
+	return data
+}
+
+// saveSavedData persists the data structure to disk.
+func saveSavedData(data SavedData) error {
+	if err := os.MkdirAll(appFolder, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	updatedData, err := json.MarshalIndent(data, "", " ")
+	if err != nil {
+		return fmt.Errorf("failed to encode JSON: %w", err)
+	}
+
+	if err := os.WriteFile(jsonfilePath, updatedData, 0644); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+	return nil
+}
+
+func replacePlaceholders(input string, variables map[string]string) string {
 	re := regexp.MustCompile(`{{(.*?)}}`)
-	return re.ReplaceAllStringFunc(url, func(match string) string {
-		key := strings.Trim(match, "{}") // Extract key name
+	return re.ReplaceAllStringFunc(input, func(match string) string {
+		key := strings.Trim(match, "{}")
 		if value, exists := variables[key]; exists {
 			return value
 		}
-		return match // Keep original placeholder if key not found
+		return match
 	})
 }
 
-// Exported Methods (Callable from JS)
-
-type ResponseMsg struct {
-	Body   string `json:"body"`
-	Status string `json:"status"`
-}
+// --- Exported Methods (Callable from JS) ---
 
 func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON string) ResponseMsg {
-	// Load variables first
+	// 1. Load and Parse Variables
 	variablesJSON := a.GetVariables()
 	var variables map[string]string
 	if err := json.Unmarshal([]byte(variablesJSON), &variables); err != nil {
-		return ResponseMsg{Body: "\n Error parsing Env Variables", Status: "Incorrect Env Variables"}
+		return ResponseMsg{Body: "Error parsing Env Variables", Status: "Configuration Error"}
 	}
 
-	// Replace placeholders
+	// 2. Variable Substitution
 	urlStr = replacePlaceholders(urlStr, variables)
 	headersJSON = replacePlaceholders(headersJSON, variables)
 	paramsJSON = replacePlaceholders(paramsJSON, variables)
 	bodyStr = replacePlaceholders(bodyStr, variables)
 
-	// Parse Headers
+	// 3. Parse Headers
 	var headers map[string]string
 	if err := json.Unmarshal([]byte(headersJSON), &headers); err != nil {
-		return ResponseMsg{Body: " \n Error parsing Headers \n\n Correct the Headers format", Status: " Incorrect Headers "}
+		return ResponseMsg{Body: "Error parsing Headers. Check JSON format.", Status: "Configuration Error"}
 	}
 
-	// Parse Params and append to URL
+	// 4. Parse Query Params & Build URL
 	if paramsJSON != "" {
 		var params map[string]string
 		if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
-			return ResponseMsg{Body: " \n Error parsing Params \n\n Correct the Params format", Status: " Incorrect Params "}
+			return ResponseMsg{Body: "Error parsing Query Params. Check JSON format.", Status: "Configuration Error"}
 		}
-
 		parsedURL, err := url.Parse(urlStr)
 		if err != nil {
-			return ResponseMsg{Body: " \n Error parsing URL \n\n Correct the URL format", Status: " Incorrect URL "}
+			return ResponseMsg{Body: "Invalid URL format.", Status: "Configuration Error"}
 		}
-
 		q := parsedURL.Query()
 		for key, value := range params {
 			q.Set(key, value)
@@ -130,137 +163,72 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 		urlStr = parsedURL.String()
 	}
 
+	// 5. Build Request
 	method = strings.ToUpper(strings.TrimSpace(method))
-
 	var req *http.Request
 	var err error
-	client := &http.Client{}
 
-	switch method {
-	case "GET", "DELETE", "HEAD":
-		req, err = http.NewRequest(method, urlStr, nil)
-	case "POST", "PUT", "PATCH":
-		req, err = http.NewRequest(method, urlStr, bytes.NewBuffer([]byte(bodyStr)))
-	default:
-		return ResponseMsg{Body: "Request Method is set incorrectly", Status: " Incorrect Request "}
-	}
-
+	// We only support a subset of methods with body for now, but standard http.NewRequest handles nil body fine for GET
+	req, err = http.NewRequest(method, urlStr, bytes.NewBuffer([]byte(bodyStr)))
 	if err != nil {
-		return ResponseMsg{Body: "Failed to make request\n\n" + err.Error(), Status: "Error"}
+		return ResponseMsg{Body: "Failed to create request: " + err.Error(), Status: "Error"}
 	}
 
-	// Set headers
 	for key, value := range headers {
 		req.Header.Set(key, value)
 	}
 
-	// Execute request
+	// 6. Execute
+	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return ResponseMsg{Body: "Failed to make request\n\n" + err.Error(), Status: "Error"}
+		return ResponseMsg{Body: "Network Error: " + err.Error(), Status: "Error"}
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return ResponseMsg{Body: "Failed to read response body\n\n" + err.Error(), Status: "Error"}
+		return ResponseMsg{Body: "Failed to read response body: " + err.Error(), Status: "Error"}
 	}
 
 	return ResponseMsg{Body: string(bodyBytes), Status: resp.Status}
 }
 
 func (a *App) GetRequests() []Request {
-	if !checkFileExists(jsonfilePath) {
-		return []Request{}
-	}
-
-	file, err := os.ReadFile(jsonfilePath)
-	if err != nil {
-		log.Println("Error reading file:", err)
-		return []Request{}
-	}
-
-	var saved_data SavedData
-	if len(file) > 0 {
-		json.Unmarshal(file, &saved_data)
-	}
-	return saved_data.Requests
+	return getSavedData().Requests
 }
 
 func (a *App) SaveRequest(r Request) string {
-	if checkFileExists(jsonfilePath) {
-		if err := os.MkdirAll(appFolder, os.ModePerm); err != nil {
-			return fmt.Sprintf("Failed to create directory: %v", err)
-		}
-	} else {
-		// Ensure directory exists even if file doesn't
-		if err := os.MkdirAll(appFolder, os.ModePerm); err != nil {
-			return fmt.Sprintf("Failed to create directory: %v", err)
-		}
-        // Initialize file if not exists
-        if _, err := os.Create(jsonfilePath); err != nil {
-             return fmt.Sprintf("Failed to create file: %v", err)
-        }
-    }
-
-	file, err := os.ReadFile(jsonfilePath)
-	if err != nil {
-		return fmt.Sprintf("Error reading file: %v", err)
-	}
-
-	var saved_data SavedData
-    if len(file) > 0 {
-	    json.Unmarshal(file, &saved_data)
-    }
-
-	savedRequests := saved_data.Requests
-
+	data := getSavedData()
+	
 	if r.Id == "" {
 		r.Id = uuid.New().String()
-		savedRequests = append(savedRequests, r)
+		data.Requests = append(data.Requests, r)
 	} else {
 		found := false
-		for i, savedReq := range savedRequests {
+		for i, savedReq := range data.Requests {
 			if savedReq.Id == r.Id {
-				savedRequests[i] = r
+				data.Requests[i] = r
 				found = true
 				break
 			}
 		}
 		if !found {
-			savedRequests = append(savedRequests, r)
+			data.Requests = append(data.Requests, r)
 		}
 	}
 
-	saved_data.Requests = savedRequests
-
-	updatedData, err := json.MarshalIndent(saved_data, "", " ")
-	if err != nil {
-		return fmt.Sprintf("Error encoding JSON data: %v", err)
-	}
-
-	if err := os.WriteFile(jsonfilePath, updatedData, 0644); err != nil {
-		return fmt.Sprintf("failed to save request: %v", err)
+	if err := saveSavedData(data); err != nil {
+		return "Failed to save request: " + err.Error()
 	}
 	return "Request Saved Successfully"
 }
 
 func (a *App) DeleteRequest(id string) error {
-	file, err := os.ReadFile(jsonfilePath)
-	if err != nil {
-		return fmt.Errorf("failed to read file: %w", err)
-	}
-
-	var saved_data SavedData
-    if len(file) > 0 {
-	    if err := json.Unmarshal(file, &saved_data); err != nil {
-		    return fmt.Errorf("failed to parse JSON: %w", err)
-    	}
-    }
-
-	requests := saved_data.Requests
+	data := getSavedData()
+	
 	index := -1
-	for i, req := range requests {
+	for i, req := range data.Requests {
 		if req.Id == id {
 			index = i
 			break
@@ -271,69 +239,34 @@ func (a *App) DeleteRequest(id string) error {
 		return fmt.Errorf("id not found: %s", id)
 	}
 
-	saved_data.Requests = append(requests[:index], requests[index+1:]...)
+	data.Requests = append(data.Requests[:index], data.Requests[index+1:]...)
 
-	updatedData, err := json.MarshalIndent(saved_data, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to encode JSON: %w", err)
+	if err := saveSavedData(data); err != nil {
+		return err
 	}
-
-	if err := os.WriteFile(jsonfilePath, updatedData, 0644); err != nil {
-		return fmt.Errorf("failed to write file: %w", err)
-	}
-
 	return nil
 }
 
 func (a *App) GetVariables() string {
-	if !checkFileExists(jsonfilePath) {
+	vars := getSavedData().Variables
+	if vars == "" {
 		return "{}"
 	}
-	file, err := os.ReadFile(jsonfilePath)
-	if err != nil {
-		return "{}"
-	}
-	var saved_data SavedData
-    if len(file) > 0 {
-    	json.Unmarshal(file, &saved_data)
-    }
-    if saved_data.Variables == "" {
-        return "{}"
-    }
-	return saved_data.Variables
+	return vars
 }
 
 func (a *App) SaveVariables(variableString string) string {
-    // Validate JSON first
+	// Validate JSON
 	var variables map[string]string
 	if err := json.Unmarshal([]byte(variableString), &variables); err != nil {
-		return "Error parsing Environment Variables, JSON structure is incorrect"
+		return "Error: Invalid JSON structure"
 	}
 
-    if err := os.MkdirAll(appFolder, os.ModePerm); err != nil {
-         return fmt.Sprintf("Failed to create directory: %v", err)
-    }
+	data := getSavedData()
+	data.Variables = variableString
 
-    // Logic similar to SaveRequest, load existing, update variables, save back.
-    // NOTE: Simplified here to reusing existing logic pattern
-    
-	file, _ := os.ReadFile(jsonfilePath) // Ignore error if file doesn't exist, we will create/rewrite
-
-	var saved_data SavedData
-    if len(file) > 0 {
-    	json.Unmarshal(file, &saved_data)
-    }
-
-	saved_data.Variables = variableString
-
-	updatedData, err := json.MarshalIndent(saved_data, "", " ")
-	if err != nil {
-		return fmt.Sprintf("Error encoding JSON data: %v", err)
+	if err := saveSavedData(data); err != nil {
+		return "Failed to save variables: " + err.Error()
 	}
-
-	if err := os.WriteFile(jsonfilePath, updatedData, 0644); err != nil {
-		return "Failed to save variables"
-	}
-
-	return "Environment Variables Saved Sucessfully"
+	return "Environment Variables Saved Successfully"
 }

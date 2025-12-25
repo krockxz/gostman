@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "dev:web": "cp index-web.html index.html && vite --config vite.web.config.js",
+    "build:web": "cp index-web.html index.html && vite build --config vite.web.config.js",
     "preview": "vite preview"
   },
   "dependencies": {

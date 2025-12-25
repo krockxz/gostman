@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react'
-import { SendRequest, GetRequests, SaveRequest, DeleteRequest, GetVariables, SaveVariables } from "../wailsjs/go/main/App"
+import { useState } from "react"
+import { LandingPage } from "./components/LandingPage"
 import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
 import { ResponsePanel } from "./components/ResponsePanel"
@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs"
 import { Textarea } from "./components/ui/textarea"
 import { Button } from "./components/ui/button"
 import { ScrollArea } from "./components/ui/scroll-area"
-import { Braces, Hash, Heading1, FolderOpen } from "lucide-react"
+import { Braces, Hash, Heading1, FolderOpen, ArrowLeft } from "lucide-react"
 
 const DEFAULT_REQUEST = {
   id: "",
@@ -20,35 +20,27 @@ const DEFAULT_REQUEST = {
   response: ""
 }
 
-function App() {
-  const [requests, setRequests] = useState([])
+// Mock data for web version (replace with actual API calls)
+const mockRequests = [
+  {
+    id: "1",
+    name: "Example GET Request",
+    method: "GET",
+    url: "https://api.example.com/users",
+    headers: '{"Content-Type": "application/json"}',
+    body: "",
+    queryParams: '{}',
+    response: '{"status": "success", "data": []}'
+  }
+]
+
+function WebApp() {
+  const [showLanding, setShowLanding] = useState(true)
+  const [requests, setRequests] = useState(mockRequests)
   const [activeRequest, setActiveRequest] = useState(DEFAULT_REQUEST)
   const [variables, setVariables] = useState("{}")
   const [status, setStatus] = useState("")
   const [loading, setLoading] = useState(false)
-
-  // -- Data Loading --
-
-  const fetchInitialData = useCallback(async () => {
-    try {
-      const [reqs, vars] = await Promise.all([GetRequests(), GetVariables()])
-      setRequests(reqs || [])
-      setVariables(vars || "{}")
-    } catch (e) {
-      console.error("Failed to load data:", e)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchInitialData()
-  }, [fetchInitialData])
-
-  const refreshRequests = async () => {
-    const reqs = await GetRequests()
-    setRequests(reqs || [])
-  }
-
-  // -- Event Handlers --
 
   const handleSelectRequest = (req) => {
     setActiveRequest(req)
@@ -61,44 +53,35 @@ function App() {
   }
 
   const handleSave = async () => {
-    try {
-      const msg = await SaveRequest(activeRequest)
-      // Optional: Replace alert with a toast notification in future
-      alert(msg)
-      await refreshRequests()
-    } catch (e) {
-      console.error(e)
-    }
+    // Web version - save to localStorage or API
+    alert("Request saved! (Web version)")
   }
 
   const handleDelete = async (id) => {
     if (!id) return
     if (confirm("Are you sure you want to delete this request?")) {
-      try {
-        await DeleteRequest(id)
-        await refreshRequests()
-        handleNewRequest()
-      } catch (e) {
-        console.error(e)
-      }
+      setRequests(requests.filter(r => r.id !== id))
+      handleNewRequest()
     }
   }
 
   const handleSend = async () => {
     setLoading(true)
     setStatus("Sending...")
+    // Web version - make actual API call via fetch
     try {
-      const resp = await SendRequest(
-        activeRequest.method,
-        activeRequest.url,
-        activeRequest.headers,
-        activeRequest.body,
-        activeRequest.queryParams
-      )
-      setActiveRequest(prev => ({ ...prev, response: resp.body }))
-      setStatus(resp.status)
+      const response = await fetch(activeRequest.url, {
+        method: activeRequest.method,
+        headers: JSON.parse(activeRequest.headers || "{}"),
+        body: ["POST", "PUT", "PATCH"].includes(activeRequest.method)
+          ? activeRequest.body
+          : undefined
+      })
+      const text = await response.text()
+      setActiveRequest(prev => ({ ...prev, response: text }))
+      setStatus(`${response.status} ${response.statusText}`)
     } catch (e) {
-      setActiveRequest(prev => ({ ...prev, response: "Error: " + e }))
+      setActiveRequest(prev => ({ ...prev, response: "Error: " + e.message }))
       setStatus("Error")
     } finally {
       setLoading(false)
@@ -106,18 +89,24 @@ function App() {
   }
 
   const handleSaveVars = async () => {
-    try {
-      const msg = await SaveVariables(variables)
-      alert(msg)
-    } catch (e) {
-      console.error(e)
-    }
+    alert("Variables saved! (Web version)")
   }
 
-  // -- Render Helpers --
+  const handleGetStarted = () => {
+    setShowLanding(false)
+  }
+
+  const handleBackToLanding = () => {
+    setShowLanding(true)
+  }
 
   const updateField = (field, value) => {
     setActiveRequest(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Show landing page for web version
+  if (showLanding) {
+    return <LandingPage onGetStarted={handleGetStarted} />
   }
 
   return (
@@ -125,12 +114,21 @@ function App() {
       {/* Header */}
       <header className="flex items-center justify-between border-b bg-muted/10 backdrop-blur-md px-6 py-3">
         <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBackToLanding}
+            className="h-8 w-8"
+            title="Back to landing page"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-cyan-500 text-primary-foreground font-bold shadow-lg shadow-primary/25">
             <span className="text-lg">G</span>
           </div>
           <div>
             <h1 className="text-base font-semibold tracking-tight">Gostman</h1>
-            <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">HTTP Client</p>
+            <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Web Version</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -249,4 +247,4 @@ function App() {
   )
 }
 
-export default App
+export default WebApp
