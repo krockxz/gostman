@@ -422,96 +422,47 @@ export function LandingPage({ onGetStarted }) {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="relative py-20 px-6 bg-muted/10" data-animate="cta">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-cyan-500/20 to-emerald-500/20 blur-3xl" />
-            <Card className="relative border-primary/20 bg-gradient-to-br from-background to-muted/20">
-              <CardContent className="p-12 space-y-8">
-                <h2 className="text-4xl md:text-5xl font-bold">
-                  Ready to Streamline Your
-                  <span className="block mt-2 bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">
-                    API Testing?
-                  </span>
-                </h2>
-                <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                  Join thousands of developers who've switched to a lighter, faster HTTP client.
-                </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <DownloadDropdown />
-                  <Button size="lg" variant="outline" className="gap-3 text-lg px-8 py-6 border-primary/30" asChild>
-                    <a href="https://github.com/krockxz/gostman" target="_blank" rel="noopener noreferrer">
-                      <Github className="h-5 w-5" />
-                      Star on GitHub
-                    </a>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="border-t bg-muted/10 py-12 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-cyan-500 text-primary-foreground font-bold">
-                  <span className="text-sm">G</span>
-                </div>
-                <span className="font-semibold">Gostman</span>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-cyan-500 text-primary-foreground font-bold">
+                <span className="text-sm">G</span>
               </div>
-              <p className="text-sm text-muted-foreground">
-                A lightweight HTTP client for developers who value simplicity and speed.
-              </p>
+              <div>
+                <span className="font-semibold">Gostman</span>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  A lightweight HTTP client for developers
+                </p>
+              </div>
             </div>
 
-            <div>
-              <h4 className="font-semibold mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Features</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Download</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Changelog</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Roadmap</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Resources</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">API Reference</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Tutorials</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Community</h4>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors flex items-center gap-2">
-                  <Github className="h-4 w-4" />
-                  GitHub
-                </a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Discord</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Twitter</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Report Issue</a></li>
-              </ul>
+            <div className="flex items-center gap-6">
+              <a
+                href="https://github.com/krockxz/gostman"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+              >
+                <Github className="h-4 w-4" />
+                GitHub
+              </a>
+              <a
+                href="https://github.com/krockxz/gostman/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Report Issue
+              </a>
             </div>
           </div>
 
-          <div className="border-t pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="mt-8 pt-8 border-t text-center">
             <p className="text-sm text-muted-foreground">
-              © 2024 Gostman. Open source, always free.
+              © 2025 Gostman. Open source, always free.
             </p>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-              <a href="#" className="hover:text-foreground transition-colors">Terms</a>
-              <a href="#" className="hover:text-foreground transition-colors">License</a>
-            </div>
           </div>
         </div>
       </footer>
