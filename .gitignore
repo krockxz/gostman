@@ -1,6 +1,4 @@
 # Binaries
-bin/
-build/bin/
 *.exe
 *.dll
 *.so

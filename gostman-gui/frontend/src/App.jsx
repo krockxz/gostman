@@ -171,12 +171,7 @@ function App() {
             <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">HTTP Client</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-full bg-muted/50 px-3 py-1 text-xs text-muted-foreground">
-            <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Ready</span>
-          </div>
-        </div>
+
       </header>
 
       {/* Main Content */}

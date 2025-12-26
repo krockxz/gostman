@@ -96,9 +96,12 @@
 
   /* Animated pulse for loading states */
   @keyframes pulse-glow {
-    0%, 100% {
+
+    0%,
+    100% {
       box-shadow: 0 0 12px -3px hsl(var(--primary) / 0.2);
     }
+
     50% {
       box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.4);
     }
@@ -145,13 +148,27 @@
   }
 }
 
-/* Syntax highlighting colors for JSON */
+/* Syntax highlighting colors for JSON (Shared by Tree and Raw views) */
 @layer utilities {
-  .json-key { color: hsl(191 96% 54%); }
-  .json-string { color: hsl(142 76% 56%); }
-  .json-number { color: hsl(25 95% 53%); }
-  .json-boolean { color: hsl(280 74% 64%); }
-  .json-null { color: hsl(0 84% 60%); }
+  .json-key {
+    color: hsl(191 96% 54%);
+  }
+
+  .json-string {
+    color: hsl(142 76% 56%);
+  }
+
+  .json-number {
+    color: hsl(25 95% 53%);
+  }
+
+  .json-boolean {
+    color: hsl(280 74% 64%);
+  }
+
+  .json-null {
+    color: hsl(0 84% 60%);
+  }
 
   /* Scroll-triggered animations */
   .reveal-on-scroll {
@@ -168,38 +185,165 @@
 
 /* Landing page specific animations */
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-20px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-20px);
+  }
 }
+
 @keyframes float-delayed {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-30px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-30px);
+  }
 }
+
 @keyframes float-slow {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-15px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
 }
+
 @keyframes pulse-slow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.8; }
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
 }
+
 @keyframes pulse-slow-delayed {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.6; }
+
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
+
 .animate-float-delayed {
   animation: float-delayed 8s ease-in-out infinite;
 }
+
 .animate-float-slow {
   animation: float-slow 10s ease-in-out infinite;
 }
+
 .animate-pulse-slow {
   animation: pulse-slow 4s ease-in-out infinite;
 }
+
 .animate-pulse-slow-delayed {
   animation: pulse-slow-delayed 5s ease-in-out infinite;
+}
+
+/* Custom styling for react-json-view-lite */
+@layer components {
+  .json-tree-wrapper {
+    @apply text-sm;
+  }
+
+  /* Override react-json-view-lite default styles */
+  .json-tree-wrapper .json-view {
+    background: transparent !important;
+    padding: 0 !important;
+    line-height: 1.6 !important;
+  }
+
+  .json-tree-wrapper .json-view__row {
+    padding: 2px 0 !important;
+    transition: background-color 0.15s ease;
+  }
+
+  .json-tree-wrapper .json-view__row:hover {
+    background-color: hsl(var(--muted) / 0.3) !important;
+    border-radius: 4px;
+  }
+
+  /* Property keys */
+  .json-tree-wrapper .json-view__key {
+    color: hsl(191 96% 54%) !important;
+    font-weight: 500 !important;
+  }
+
+  /* String values */
+  .json-tree-wrapper .json-view__string {
+    color: hsl(142 76% 56%) !important;
+  }
+
+  /* Number values */
+  .json-tree-wrapper .json-view__number {
+    color: hsl(25 95% 53%) !important;
+  }
+
+  /* Boolean values */
+  .json-tree-wrapper .json-view__boolean {
+    color: hsl(280 74% 64%) !important;
+  }
+
+  /* Null values */
+  .json-tree-wrapper .json-view__null {
+    color: hsl(0 84% 60%) !important;
+    font-style: italic !important;
+  }
+
+  /* Brackets and punctuation */
+  .json-tree-wrapper .json-view__punctuation {
+    color: hsl(var(--muted-foreground)) !important;
+  }
+
+  /* Expand/collapse icons */
+  .json-tree-wrapper .json-view__expand-icon,
+  .json-tree-wrapper .json-view__collapse-icon {
+    color: hsl(var(--primary)) !important;
+    cursor: pointer !important;
+    margin-right: 6px !important;
+    transition: transform 0.2s ease, color 0.15s ease !important;
+  }
+
+  .json-tree-wrapper .json-view__expand-icon:hover,
+  .json-tree-wrapper .json-view__collapse-icon:hover {
+    color: hsl(var(--primary) / 0.8) !important;
+    transform: scale(1.1) !important;
+  }
+
+  /* Collapsed preview */
+  .json-tree-wrapper .json-view__ellipsis {
+    color: hsl(var(--muted-foreground) / 0.6) !important;
+    margin-left: 4px !important;
+  }
+
+  /* Size badges (e.g., "3 items") */
+  .json-tree-wrapper .json-view__item-count {
+    color: hsl(var(--muted-foreground) / 0.7) !important;
+    font-size: 0.85em !important;
+    margin-left: 6px !important;
+  }
 }

@@ -1,44 +1,11 @@
 # Gostman
 
-A modern HTTP client for developers - available as both a terminal-based CLI tool and a beautiful GUI desktop application.
+A modern, beautiful HTTP client desktop application for developers - built with Wails and React.
 
-## Versions
+![Gostman GUI](https://github.com/user-attachments/assets/98ad0be6-479e-432f-8794-bd495a401872)
 
-### 🖥️ CLI Version (Terminal)
-A terminal-based API client built with Bubble Tea for creating, sending, and managing HTTP requests.
+## Features
 
-![gostman](https://github.com/user-attachments/assets/98ad0be6-479e-432f-8794-bd495a401872)
-
-**Features:**
-- Create and send HTTP requests (GET, POST, PUT, DELETE, etc.)
-- Save, load, and manage requests
-- Edit and delete saved requests easily
-- Dynamic UI with status messages and detailed responses
-
-**Install:**
-```bash
-go install github.com/krockxz/gostman@latest
-```
-
-**Usage:**
-```bash
-gostman
-```
-
-**Keyboard Shortcuts:**
-- `Ctrl + C`: Quit the application
-- `Tab`: Move around
-- `Ctrl + Arrow Keys`: Change Tabs (Body/Param/Header)
-- `Enter`: Send a request
-- `Ctrl + S`: Save the current request
-- `Ctrl + E`: Open Environment Variables page
-- `Ctrl + D`: Open Dashboard
-- `Ctrl + H`: Open Help page
-
-### 🖥️ GUI Version (Desktop)
-A beautiful, modern GUI desktop application built with Wails and React.
-
-**Features:**
 - Beautiful glassmorphic UI design
 - Real-time HTTP request/response handling
 - Collections management
@@ -47,20 +14,32 @@ A beautiful, modern GUI desktop application built with Wails and React.
 - Dark mode theme
 - Cross-platform (macOS, Windows, Linux)
 
-**Download:**
-Visit the [Releases](https://github.com/krockxz/gostman/releases) page to download the latest version for your platform:
-- macOS: Universal Binary (Intel + Apple Silicon)
-- Windows: 64-bit Installer
-- Linux: AppImage (Universal)
+## Download
 
-**Build from source:**
+Visit the [Releases](https://github.com/krockxz/gostman/releases) page to download the latest version for your platform:
+- **macOS**: Universal Binary (Intel + Apple Silicon)
+- **Windows**: 64-bit Installer
+- **Linux**: AppImage (Universal)
+
+## Build from Source
+
 ```bash
 cd gostman-gui
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 wails build
 ```
 
-### 🌐 Web Version
+## Development
+
+To run the application in development mode:
+
+```bash
+cd gostman-gui
+wails dev
+```
+
+## Web Version
+
 Try Gostman in your browser at [gostman.dev](https://gostman.dev) (coming soon).
 
 ## Contributing
