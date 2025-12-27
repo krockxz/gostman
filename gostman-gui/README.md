@@ -1,18 +1,38 @@
-# Gostman GUI
+# Gostman
 
-A beautiful, modern HTTP client desktop application built with Wails (Go + React).
+<div align="center">
+  <img src="frontend/src/assets/logo.jpg" alt="Gostman Logo" width="120" height="120" style="border-radius: 20px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);">
+  
+  <h1 style="margin-top: 20px;">The HTTP Client For the Go Era</h1>
+  
+  <p style="font-size: 1.2em; color: #666;">
+    Native, lightweight, and blazing fast. The developer's choice for API testing.
+  </p>
 
-![Gostman GUI](https://github.com/krockxz/gostman/assets/your-screenshot)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  ![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?logo=go&logoColor=white)
+  ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+</div>
+
+<br>
+
+![Gostman Preview](/home/kunal/.gemini/antigravity/brain/64b9835b-2baa-4f24-8ef8-b2dd12805999/gostman_landing_page_1766848531394.png)
+
+## Overview
+
+Gostman is a modern, cross-platform HTTP client built with **Wails** (Go + React). It combines the performance of a native Go backend with the beautiful, reactive UI of modern web technologies.
+
+Why use generic, bloated tools when you can use a client designed for speed and simplicity?
 
 ## Features
 
-- **Beautiful UI**: Modern glassmorphic design with smooth animations
-- **Real-time HTTP**: Send requests and see responses instantly
-- **Collections**: Organize your requests into collections
-- **Environment Variables**: Manage different environments for your API testing
-- **Request History**: Keep track of your previous requests
-- **Dark Mode**: Easy on the eyes with a sleek dark theme
-- **Cross-platform**: Works on macOS, Windows, and Linux
+- ⚡ **Lightning Fast**: Built with Go for instant startup and blazing-fast response times.
+- 🎨 **Beautiful UI**: Modern glassmorphic design with smooth animations and dark mode.
+- 🔒 **Local & Private**: All data stays on your machine. No cloud sync, no tracking, no accounts.
+- 📂 **Collections**: Organize your requests into collections for easy access.
+- 🔄 **Environment Variables**: Manage multiple environments (Dev, Staging, Prod) with dynamic variable support.
+- ⌨️ **Keyboard Shortcuts**: Power user shortcuts for rapid API testing workflows.
+- 🖥️ **Cross-Platform**: Native executables for macOS, Windows, and Linux.
 
 ## Installation
 
@@ -20,122 +40,72 @@ A beautiful, modern HTTP client desktop application built with Wails (Go + React
 
 Visit the [Releases](https://github.com/krockxz/gostman/releases) page to download the latest version:
 
-- **macOS**: `Gostman-darwin-universal.dmg` (Universal Binary - Intel + Apple Silicon)
-- **Windows**: `Gostman-windows-amd64.exe` (64-bit Installer)
-- **Linux**: `Gostman-linux-amd64.AppImage` (Universal)
+| OS | Format | Download |
+|----|--------|----------|
+| **macOS** | `.dmg` | [Universal Binary (Intel + Apple Silicon)](https://github.com/krockxz/gostman/releases/latest/download/Gostman-darwin-universal.dmg) |
+| **Windows**| `.exe` | [64-bit Installer](https://github.com/krockxz/gostman/releases/latest/download/Gostman-windows-amd64.exe) |
+| **Linux** | `.AppImage`| [Universal AppImage](https://github.com/krockxz/gostman/releases/latest/download/Gostman-linux-amd64.AppImage) |
 
 ### Build from Source
 
-#### Prerequisites
-
+**Prerequisites:**
 - Go 1.23+
-- Node.js 18+
-- Wails CLI
+- Node.js 20+
+- [Wails CLI](https://wails.io/docs/gettingstarted/installation)
 
-#### Steps
-
-1. Install Wails CLI:
 ```bash
+# 1. Install Wails
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
-```
 
-2. Clone and build:
-```bash
+# 2. Clone the repository
 git clone https://github.com/krockxz/gostman.git
 cd gostman/gostman-gui
+
+# 3. Build the application
 wails build
 ```
 
-3. Run the application:
-```bash
-./build/bin/Gostman
-```
+Run the binary from `build/bin/`.
 
 ## Development
 
-### Live Development
+### Live Development (Hot Reload)
 
-Run the application in development mode with hot reload:
+Run the application in development mode. This starts both the Go backend and the Vite frontend server.
 
 ```bash
 wails dev
 ```
 
-This will:
-- Start the Wails backend
-- Launch Vite dev server for the frontend
-- Provide hot reload for both Go and React changes
+### Web Version
 
-### Frontend Only Development
-
-To work on the frontend UI without the Go backend:
+Gostman also runs as a pure web application (with some limitations like CORS, handled via proxy in production).
 
 ```bash
 cd frontend
-npm install
-npm run dev
+npm run dev:web
 ```
-
-### Building
-
-Build the frontend for production:
-```bash
-cd frontend
-npm run build
-```
-
-This creates a production build in `frontend/dist/` which will be packaged by Wails.
-
-## Web Version
-
-This project also includes a web version with a beautiful landing page. To build the web version:
-
-```bash
-cd frontend
-npm run build:web
-```
-
-The web build will be in `frontend/dist-web/` and can be deployed to any static hosting service.
-
-See [WEB_BUILD.md](frontend/WEB_BUILD.md) for more details on web vs desktop builds.
 
 ## Project Structure
 
-```
+```bash
 gostman-gui/
 ├── main.go          # Application entry point
 ├── app.go           # Wails app context and backend methods
 ├── wails.json       # Wails project configuration
-├── frontend/        # React frontend
+├── frontend/        # React frontend (Vite)
 │   ├── src/
-│   │   ├── App.jsx       # Desktop app (no landing page)
-│   │   ├── WebApp.jsx    # Web app (with landing page)
-│   │   ├── main.jsx      # Desktop entry point
-│   │   ├── web-main.jsx  # Web entry point
-│   │   └── components/   # React components
-│   ├── index.html        # Desktop HTML
-│   ├── index-web.html    # Web HTML
-│   └── vite.config.js    # Vite configuration
+│   │   ├── App.jsx       # Desktop app component
+│   │   ├── WebApp.jsx    # Web app component (with landing page)
+│   │   ├── components/   # UI Components
+│   │   └── lib/          # Utilities (API, Storage, etc.)
 └── build/           # Build output
 ```
 
-## Keyboard Shortcuts
-
-- `Ctrl/Cmd + Enter`: Send request
-- `Ctrl/Cmd + S`: Save request
-- `Ctrl/Cmd + N`: New request
-- `Ctrl/Cmd + W`: Close current tab
-
 ## Contributing
 
-We welcome contributions! Please feel free to submit issues or pull requests.
+Contributions are welcome! Please feel free to submit issues or pull requests.
 
 ## License
 
-MIT License - see the main [LICENSE](../LICENSE) file for details.
-
-## Links
-
-- [Main Repository](https://github.com/krockxz/gostman)
-- [Issue Tracker](https://github.com/krockxz/gostman/issues)
-- [Releases](https://github.com/krockxz/gostman/releases)
+This project is licensed under the MIT License - see the [LICENSE](../LICENSE) file for details.
