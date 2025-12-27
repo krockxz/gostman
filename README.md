@@ -16,7 +16,7 @@
 
 <br>
 
-![Gostman Preview](/home/kunal/.gemini/antigravity/brain/64b9835b-2baa-4f24-8ef8-b2dd12805999/gostman_landing_page_1766848531394.png)
+![Gostman Preview](screenshots/landing_page.png)
 
 ## Overview
 
