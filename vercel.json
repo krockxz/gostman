@@ -1,7 +1,7 @@
 {
     "framework": "vite",
-    "buildCommand": "cd frontend && npm install && npm run build:web",
-    "outputDirectory": "frontend/dist-web",
+    "buildCommand": "cd gostman-gui/frontend && npm install && npm run build:web",
+    "outputDirectory": "gostman-gui/frontend/dist-web",
     "rewrites": [
         {
             "source": "/api/(.*)",
