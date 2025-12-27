@@ -1,5 +1,5 @@
 import React from "react"
-import { Send, Save, Globe } from "lucide-react"
+import { Send, Save, Globe, Code } from "lucide-react"
 import { Button } from "./ui/button"
 import { Select } from "./ui/select"
 import { Input } from "./ui/input"
@@ -16,7 +16,7 @@ const methodColors = {
   HEAD: "text-purple-400",
 }
 
-export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameChange, onSend, onSave, loading }) {
+export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameChange, onSend, onSave, onGenerateCode, loading }) {
   const [showShortcuts, setShowShortcuts] = React.useState(false)
 
   React.useEffect(() => {
@@ -94,6 +94,20 @@ export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameC
           <Save className="h-4 w-4" />
           Save
         </Button>
+
+        {/* Code Button - only show if handler is provided */}
+        {onGenerateCode && (
+          <Button
+            onClick={onGenerateCode}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            title="Generate code snippet"
+          >
+            <Code className="h-4 w-4" />
+            Code
+          </Button>
+        )}
 
         {/* Request Name Input */}
         <div className="relative w-40">

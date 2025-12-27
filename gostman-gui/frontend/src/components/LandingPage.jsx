@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react"
-import { Button } from "./ui/button"
+import { Button, buttonVariants } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Card, CardContent } from "./ui/card"
 import { cn } from "../lib/utils"
@@ -28,6 +28,78 @@ import {
   Gauge,
   ChevronDown,
 } from "lucide-react"
+
+const FEATURES = [
+  {
+    icon: Zap,
+    title: "Lightning Fast",
+    description: "Built with Go for instant startup and blazing-fast response times",
+    gradient: "from-yellow-400 to-orange-500",
+  },
+  {
+    icon: Braces,
+    title: "JSON Syntax Highlighting",
+    description: "Beautifully formatted responses with color-coded syntax",
+    gradient: "from-cyan-400 to-blue-500",
+  },
+  {
+    icon: FolderOpen,
+    title: "Collections",
+    description: "Organize your requests into collections for easy access",
+    gradient: "from-purple-400 to-pink-500",
+  },
+  {
+    icon: Keyboard,
+    title: "Keyboard Shortcuts",
+    description: "Power user shortcuts for rapid API testing workflows",
+    gradient: "from-green-400 to-emerald-500",
+  },
+  {
+    icon: Code,
+    title: "Environment Variables",
+    description: "Manage multiple environments with dynamic variable support",
+    gradient: "from-blue-400 to-indigo-500",
+  },
+  {
+    icon: Shield,
+    title: "Local & Private",
+    description: "All data stays on your machine. No cloud, no tracking",
+    gradient: "from-red-400 to-rose-500",
+  },
+]
+
+const COMPARISONS = [
+  { feature: "Built with Go", gostman: "✓", others: "✗" },
+  { feature: "Offline First", gostman: "✓", others: "✗" },
+  { feature: "No Account Required", gostman: "✓", others: "✗" },
+  { feature: "Open Source", gostman: "✓", others: "✓" },
+  { feature: "Lightweight (<50MB)", gostman: "✓", others: "✗" },
+  { feature: "Local Data Only", gostman: "✓", others: "✗" },
+]
+
+const DOWNLOAD_OPTIONS = [
+  {
+    os: "macOS",
+    desc: "Universal Binary (Intel + Apple Silicon)",
+    icon: Apple,
+    href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-darwin-universal.dmg",
+    iconColor: "text-foreground/90"
+  },
+  {
+    os: "Windows",
+    desc: "64-bit Installer",
+    icon: Monitor,
+    href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-windows-amd64.exe",
+    iconColor: "text-blue-400"
+  },
+  {
+    os: "Linux",
+    desc: "AppImage (Universal)",
+    icon: Server,
+    href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-linux-amd64.AppImage",
+    iconColor: "text-amber-400"
+  }
+]
 
 const TypingAnimation = ({ text, delay = 100 }) => {
   const [displayText, setDisplayText] = useState("")
@@ -93,42 +165,21 @@ const DownloadDropdown = () => {
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div className="absolute top-full left-0 mt-2 z-20 min-w-[280px] rounded-xl border border-border/50 bg-background/95 backdrop-blur-xl shadow-2xl shadow-primary/20 overflow-hidden">
-            <a
-              href="https://github.com/krockxz/gostman/releases/latest/download/Gostman-darwin-universal.dmg"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-primary/10 transition-colors border-b border-border/30"
-              onClick={() => setIsOpen(false)}
-            >
-              <Apple className="h-5 w-5 text-foreground/90" />
-              <div className="flex-1">
-                <div className="font-semibold">macOS</div>
-                <div className="text-xs text-muted-foreground">Universal Binary (Intel + Apple Silicon)</div>
-              </div>
-              <Download className="h-4 w-4 text-muted-foreground" />
-            </a>
-            <a
-              href="https://github.com/krockxz/gostman/releases/latest/download/Gostman-windows-amd64.exe"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-primary/10 transition-colors border-b border-border/30"
-              onClick={() => setIsOpen(false)}
-            >
-              <Monitor className="h-5 w-5 text-blue-400" />
-              <div className="flex-1">
-                <div className="font-semibold">Windows</div>
-                <div className="text-xs text-muted-foreground">64-bit Installer</div>
-              </div>
-              <Download className="h-4 w-4 text-muted-foreground" />
-            </a>
-            <a
-              href="https://github.com/krockxz/gostman/releases/latest/download/Gostman-linux-amd64.AppImage"
-              className="flex items-center gap-3 px-4 py-3 hover:bg-primary/10 transition-colors"
-              onClick={() => setIsOpen(false)}
-            >
-              <Server className="h-5 w-5 text-amber-400" />
-              <div className="flex-1">
-                <div className="font-semibold">Linux</div>
-                <div className="text-xs text-muted-foreground">AppImage (Universal)</div>
-              </div>
-              <Download className="h-4 w-4 text-muted-foreground" />
-            </a>
+            {DOWNLOAD_OPTIONS.map((option) => (
+              <a
+                key={option.os}
+                href={option.href}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-primary/10 transition-colors border-b border-border/30 last:border-0"
+                onClick={() => setIsOpen(false)}
+              >
+                <option.icon className={`h-5 w-5 ${option.iconColor}`} />
+                <div className="flex-1">
+                  <div className="font-semibold">{option.os}</div>
+                  <div className="text-xs text-muted-foreground">{option.desc}</div>
+                </div>
+                <Download className="h-4 w-4 text-muted-foreground" />
+              </a>
+            ))}
           </div>
         </>
       )}
@@ -162,54 +213,6 @@ export function LandingPage({ onGetStarted }) {
     return () => observer.disconnect()
   }, [])
 
-  const features = [
-    {
-      icon: Zap,
-      title: "Lightning Fast",
-      description: "Built with Go for instant startup and blazing-fast response times",
-      gradient: "from-yellow-400 to-orange-500",
-    },
-    {
-      icon: Braces,
-      title: "JSON Syntax Highlighting",
-      description: "Beautifully formatted responses with color-coded syntax",
-      gradient: "from-cyan-400 to-blue-500",
-    },
-    {
-      icon: FolderOpen,
-      title: "Collections",
-      description: "Organize your requests into collections for easy access",
-      gradient: "from-purple-400 to-pink-500",
-    },
-    {
-      icon: Keyboard,
-      title: "Keyboard Shortcuts",
-      description: "Power user shortcuts for rapid API testing workflows",
-      gradient: "from-green-400 to-emerald-500",
-    },
-    {
-      icon: Code,
-      title: "Environment Variables",
-      description: "Manage multiple environments with dynamic variable support",
-      gradient: "from-blue-400 to-indigo-500",
-    },
-    {
-      icon: Shield,
-      title: "Local & Private",
-      description: "All data stays on your machine. No cloud, no tracking",
-      gradient: "from-red-400 to-rose-500",
-    },
-  ]
-
-  const comparisons = [
-    { feature: "Built with Go", gostman: "✓", others: "✗" },
-    { feature: "Offline First", gostman: "✓", others: "✗" },
-    { feature: "No Account Required", gostman: "✓", others: "✗" },
-    { feature: "Open Source", gostman: "✓", others: "✓" },
-    { feature: "Lightweight (<50MB)", gostman: "✓", others: "✗" },
-    { feature: "Local Data Only", gostman: "✓", others: "✗" },
-  ]
-
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
       {/* Animated background grid */}
@@ -232,12 +235,15 @@ export function LandingPage({ onGetStarted }) {
               <span className="font-semibold text-base">Gostman</span>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="sm" className="gap-2 text-sm" asChild>
-                <a href="https://github.com/krockxz/gostman" target="_blank" rel="noopener noreferrer">
-                  <Github className="h-4 w-4" />
-                  GitHub
-                </a>
-              </Button>
+              <a
+                href="https://github.com/krockxz/gostman"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "gap-2 text-sm")}
+              >
+                <Github className="h-4 w-4" />
+                GitHub
+              </a>
             </div>
           </div>
         </div>
@@ -341,7 +347,7 @@ export function LandingPage({ onGetStarted }) {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, index) => (
+            {FEATURES.map((feature, index) => (
               <Card
                 key={feature.title}
                 className={cn(
@@ -392,7 +398,7 @@ export function LandingPage({ onGetStarted }) {
                   <div className="text-center font-semibold text-primary">Gostman</div>
                   <div className="text-center font-semibold text-muted-foreground">Others</div>
                 </div>
-                {comparisons.map((item, index) => (
+                {COMPARISONS.map((item, index) => (
                   <div
                     key={item.feature}
                     className="grid grid-cols-3 gap-4 py-3 items-center hover:bg-muted/30 rounded-lg px-3 transition-colors"
@@ -466,44 +472,6 @@ export function LandingPage({ onGetStarted }) {
           </div>
         </div>
       </footer>
-
-      <style>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-20px); }
-        }
-        @keyframes float-delayed {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-30px); }
-        }
-        @keyframes float-slow {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-15px); }
-        }
-        @keyframes pulse-slow {
-          0%, 100% { opacity: 0.5; }
-          50% { opacity: 0.8; }
-        }
-        @keyframes pulse-slow-delayed {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.6; }
-        }
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-        .animate-float-delayed {
-          animation: float-delayed 8s ease-in-out infinite;
-        }
-        .animate-float-slow {
-          animation: float-slow 10s ease-in-out infinite;
-        }
-        .animate-pulse-slow {
-          animation: pulse-slow 4s ease-in-out infinite;
-        }
-        .animate-pulse-slow-delayed {
-          animation: pulse-slow-delayed 5s ease-in-out infinite;
-        }
-      `}</style>
     </div>
   )
 }

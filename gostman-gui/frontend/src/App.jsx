@@ -3,12 +3,14 @@ import { SendRequest, GetRequests, SaveRequest, DeleteRequest, GetVariables, Sav
 import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
 import { ResponsePanel } from "./components/ResponsePanel"
+import { CodeSnippetDialog } from "./components/CodeSnippetDialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs"
 import { MonacoEditor } from "./components/MonacoEditor"
 import { TabBar } from "./components/TabBar"
 import { Button } from "./components/ui/button"
 import { ScrollArea } from "./components/ui/scroll-area"
 import { Braces, Hash, Heading1, FolderOpen } from "lucide-react"
+import { generateAllSnippets } from "./lib/codeGenerator"
 
 const DEFAULT_REQUEST = {
   id: "",
@@ -25,9 +27,12 @@ let nextTabId = 1
 
 function App() {
   const [requests, setRequests] = useState([])
+  const [requestHistory, setRequestHistory] = useState([])
   const [tabs, setTabs] = useState([{ id: 'tab-1', request: { ...DEFAULT_REQUEST }, status: '', loading: false }])
   const [activeTabId, setActiveTabId] = useState('tab-1')
   const [variables, setVariables] = useState("{}")
+  const [codeDialogOpen, setCodeDialogOpen] = useState(false)
+  const [codeSnippets, setCodeSnippets] = useState(null)
 
   const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
 
@@ -140,12 +145,50 @@ function App() {
         status: resp.status,
         loading: false
       })
+
+      // Auto-log to history
+      addToHistory(activeTab.request)
     } catch (e) {
       updateActiveTab({
         request: { ...activeTab.request, response: "Error: " + e },
         status: "Error",
         loading: false
       })
+
+      // Also log failed requests to history
+      addToHistory(activeTab.request)
+    }
+  }
+
+  const addToHistory = (request) => {
+    const historyItem = {
+      ...request,
+      id: `hist-${Date.now()}`,
+      timestamp: new Date().toISOString()
+    }
+
+    setRequestHistory(prev => {
+      // Remove duplicates (same method + url)
+      const filtered = prev.filter(item =>
+        !(item.method === request.method && item.url === request.url)
+      )
+      // Add new item to the beginning
+      return [historyItem, ...filtered].slice(0, 50) // Keep last 50 requests
+    })
+  }
+
+  const handleSelectHistoryItem = (historyItem) => {
+    // Load history item into active tab
+    updateActiveTab({ request: { ...historyItem, response: '' }, status: '' })
+  }
+
+  const handleDeleteHistoryItem = (id) => {
+    setRequestHistory(prev => prev.filter(item => item.id !== id))
+  }
+
+  const handleClearHistory = () => {
+    if (confirm("Are you sure you want to clear all history?")) {
+      setRequestHistory([])
     }
   }
 
@@ -156,6 +199,23 @@ function App() {
     } catch (e) {
       console.error(e)
     }
+  }
+
+  const handleGenerateCode = () => {
+    const snippets = generateAllSnippets(
+      activeTab.request.method,
+      activeTab.request.url,
+      activeTab.request.headers,
+      activeTab.request.body,
+      activeTab.request.queryParams
+    )
+    setCodeSnippets(snippets)
+    setCodeDialogOpen(true)
+  }
+
+  const handleCloseCodeDialog = () => {
+    setCodeDialogOpen(false)
+    setCodeSnippets(null)
   }
 
   return (
@@ -178,8 +238,12 @@ function App() {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
           requests={requests}
+          requestHistory={requestHistory}
           activeRequest={activeTab.request}
           onSelectRequest={handleSelectRequest}
+          onSelectHistoryItem={handleSelectHistoryItem}
+          onDeleteHistoryItem={handleDeleteHistoryItem}
+          onClearHistory={handleClearHistory}
           onNewRequest={handleNewRequest}
           onDeleteRequest={handleDelete}
         />
@@ -201,6 +265,7 @@ function App() {
             onNameChange={(val) => updateField('name', val)}
             onSend={handleSend}
             onSave={handleSave}
+            onGenerateCode={handleGenerateCode}
             loading={activeTab.loading}
           />
 
@@ -281,6 +346,14 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* Code Snippet Dialog */}
+      {codeDialogOpen && codeSnippets && (
+        <CodeSnippetDialog
+          snippets={codeSnippets}
+          onClose={handleCloseCodeDialog}
+        />
+      )}
     </div>
   )
 }
