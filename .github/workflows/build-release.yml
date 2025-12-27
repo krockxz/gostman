@@ -103,13 +103,10 @@ jobs:
           
           cp AppDir/usr/share/applications/gostman.desktop AppDir/gostman.desktop
           
-          # Build AppImage - Extracting first to avoid FUSE issues
-          chmod +x appimagetool
-          ./appimagetool --appimage-extract
-          
-          # Use the extracted AppImage tool
-          export ARCH=x86_64
-          ./squashfs-root/AppRun AppDir Gostman-linux-amd64.AppImage
+          # Build AppImage
+          # Use APPIMAGE_EXTRACT_AND_RUN=1 to bypass FUSE requirement for running appimagetool itself
+          export APPIMAGE_EXTRACT_AND_RUN=1
+          ARCH=x86_64 ./appimagetool AppDir Gostman-linux-amd64.AppImage
           
           # Move to build/bin for consistency
           mv Gostman-linux-amd64.AppImage build/bin/
