@@ -78,19 +78,21 @@ jobs:
           # Install appimagetool
           wget -O appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool
-          
+          # Extract appimagetool to run without FUSE
+          ./appimagetool --appimage-extract
+
           # Create AppDir structure
           mkdir -p AppDir/usr/bin
           mkdir -p AppDir/usr/share/applications
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
-          
+
           # Copy binary
           cp build/bin/gostman-gui AppDir/usr/bin/
-          
+
           # Copy icon
           cp build/appicon.png AppDir/usr/share/icons/hicolor/256x256/apps/gostman.png
           cp build/appicon.png AppDir/gostman.png
-          
+
           # Create desktop file
           cat > AppDir/usr/share/applications/gostman.desktop << EOF
           [Desktop Entry]
@@ -100,14 +102,12 @@ jobs:
           Type=Application
           Categories=Development;Utility;
           EOF
-          
+
           cp AppDir/usr/share/applications/gostman.desktop AppDir/gostman.desktop
-          
-          # Build AppImage
-          # Use APPIMAGE_EXTRACT_AND_RUN=1 to bypass FUSE requirement for running appimagetool itself
-          export APPIMAGE_EXTRACT_AND_RUN=1
-          ARCH=x86_64 ./appimagetool AppDir Gostman-linux-amd64.AppImage
-          
+
+          # Build AppImage using extracted appimagetool
+          ARCH=x86_64 squashfs-root/AppRun AppDir Gostman-linux-amd64.AppImage
+
           # Move to build/bin for consistency
           mv Gostman-linux-amd64.AppImage build/bin/
 
