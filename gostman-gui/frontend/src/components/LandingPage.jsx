@@ -28,6 +28,7 @@ import {
   Gauge,
   ChevronDown,
 } from "lucide-react"
+import logo from "../assets/logo.jpg"
 
 const FEATURES = [
   {
@@ -229,9 +230,7 @@ export function LandingPage({ onGetStarted }) {
         <div className="max-w-4xl w-full backdrop-blur-xl bg-background/60 border border-border/40 rounded-2xl shadow-2xl shadow-primary/5">
           <div className="px-6 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-cyan-500 text-primary-foreground font-bold shadow-lg shadow-primary/25">
-                <span className="text-lg">G</span>
-              </div>
+              <img src={logo} alt="Gostman Logo" className="h-10 w-10 rounded-lg shadow-lg shadow-primary/25" />
               <span className="font-semibold text-base">Gostman</span>
             </div>
             <div className="flex items-center gap-3">
@@ -259,16 +258,16 @@ export function LandingPage({ onGetStarted }) {
             </Badge>
 
             <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight">
-              <span className="block">Test APIs</span>
+              <span className="block">The HTTP Client</span>
               <span className="block mt-2">
                 <span className="bg-gradient-to-r from-primary via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                  Without the Bloat
+                  For the Go Era
                 </span>
               </span>
             </h1>
 
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              <TypingAnimation text="A lightweight, fast, and beautiful HTTP client for developers who value simplicity." delay={50} />
+              <TypingAnimation text="Native, lightweight, and blazing fast. The developer's choice for API testing." delay={50} />
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
@@ -433,9 +432,7 @@ export function LandingPage({ onGetStarted }) {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-cyan-500 text-primary-foreground font-bold">
-                <span className="text-sm">G</span>
-              </div>
+              <img src={logo} alt="Gostman Logo" className="h-8 w-8 rounded-lg" />
               <div>
                 <span className="font-semibold">Gostman</span>
                 <p className="text-xs text-muted-foreground mt-0.5">

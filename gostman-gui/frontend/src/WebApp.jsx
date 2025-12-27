@@ -239,7 +239,7 @@ function WebApp() {
             <span className="text-lg">G</span>
           </div>
           <div>
-            <h1 className="text-base font-semibold tracking-tight">Gostman</h1>
+            <h1 className="text-base font-brand font-bold tracking-tight">Gostman</h1>
             <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Web Version</p>
           </div>
         </div>

@@ -86,7 +86,7 @@ export function Sidebar({
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/25">
               <FileJson className="h-4 w-4" />
             </div>
-            <h2 className="text-sm font-semibold tracking-tight">Gostman</h2>
+            <h2 className="text-sm font-brand font-bold tracking-tight">Gostman</h2>
           </div>
           <div className="flex items-center gap-1">
             <Button
