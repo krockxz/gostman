@@ -5,16 +5,7 @@ import { Select } from "./ui/select"
 import { Input } from "./ui/input"
 import { cn } from "../lib/utils"
 
-const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"]
-
-const methodColors = {
-  GET: "text-blue-400",
-  POST: "text-green-400",
-  PUT: "text-orange-400",
-  DELETE: "text-red-400",
-  PATCH: "text-yellow-400",
-  HEAD: "text-purple-400",
-}
+import { HTTP_METHODS, METHOD_COLORS } from "../lib/constants"
 
 export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameChange, onSend, onSave, onGenerateCode, loading }) {
   const [showShortcuts, setShowShortcuts] = React.useState(false)
@@ -46,7 +37,7 @@ export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameC
             value={activeRequest.method}
             onChange={(e) => onMethodChange(e.target.value)}
             className="w-24 font-mono text-sm"
-            style={{ color: methodColors[activeRequest.method] }}
+            style={{ color: METHOD_COLORS[activeRequest.method] }}
           >
             {HTTP_METHODS.map((method) => (
               <option key={method} value={method}>

@@ -22,14 +22,7 @@ function formatRelativeTime(isoString) {
   return date.toLocaleDateString()
 }
 
-const methodColors = {
-  GET: "get",
-  POST: "post",
-  PUT: "put",
-  DELETE: "delete",
-  PATCH: "patch",
-  HEAD: "head",
-}
+import { METHOD_VARIANTS } from "../lib/constants"
 
 const EmptyState = ({ icon: Icon, title, description, color = "primary" }) => (
   <div className="flex h-full flex-col items-center justify-center p-8 text-center">
@@ -260,7 +253,7 @@ export function Sidebar({
                       onClick={() => onSelectHistoryItem(req)}
                     >
                       <Badge
-                        variant={methodColors[req.method] || "default"}
+                        variant={METHOD_VARIANTS[req.method] || "default"}
                         className="shrink-0 font-mono text-[10px] px-1.5 py-0.5"
                       >
                         {req.method}
@@ -330,7 +323,7 @@ function RequestItem({ req, activeRequest, onSelectRequest, onDeleteRequest }) {
       onClick={() => onSelectRequest(req)}
     >
       <Badge
-        variant={methodColors[req.method] || "default"}
+        variant={METHOD_VARIANTS[req.method] || "default"}
         className="shrink-0 font-mono text-[10px] px-1.5 py-0.5"
       >
         {req.method}

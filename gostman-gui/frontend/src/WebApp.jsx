@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { LandingPage } from "./components/LandingPage"
 import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
@@ -7,20 +7,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs"
 import { Textarea } from "./components/ui/textarea"
 import { Button } from "./components/ui/button"
 import { ScrollArea } from "./components/ui/scroll-area"
-import { Braces, Hash, Heading1, FolderOpen, ArrowLeft } from "lucide-react"
+import { Braces, Hash, Heading1, FolderOpen, ArrowLeft, RotateCcw } from "lucide-react"
 import { CodeSnippetDialog } from "./components/CodeSnippetDialog"
 import { generateAllSnippets } from "./lib/codeGenerator"
 import { parseVariables } from "./lib/variables"
 import { prepareRequest, processResponse } from "./lib/requestUtils"
 import { DEFAULT_REQUEST, mockRequests, mockFolders } from "./lib/mockData"
+import { loadState, saveState, resetState, KEYS } from "./lib/storage"
 
 function WebApp() {
   const [showLanding, setShowLanding] = useState(true)
-  const [requests, setRequests] = useState(mockRequests)
-  const [folders, setFolders] = useState(mockFolders)
-  const [requestHistory, setRequestHistory] = useState([])
+  const [requests, setRequests] = useState(() => loadState(KEYS.REQUESTS, mockRequests))
+  const [folders, setFolders] = useState(() => loadState(KEYS.FOLDERS, mockFolders))
+  const [requestHistory, setRequestHistory] = useState(() => loadState(KEYS.HISTORY, []))
   const [activeRequest, setActiveRequest] = useState(DEFAULT_REQUEST)
-  const [variables, setVariables] = useState("{}")
+  const [variables, setVariables] = useState(() => loadState(KEYS.VARS, "{}"))
   const [status, setStatus] = useState("")
   const [loading, setLoading] = useState(false)
 
@@ -28,6 +29,13 @@ function WebApp() {
   const [showCodeDialog, setShowCodeDialog] = useState(false)
   const [snippets, setSnippets] = useState({})
 
+  // Auto-save effects
+  useEffect(() => saveState(KEYS.REQUESTS, requests), [requests])
+  useEffect(() => saveState(KEYS.FOLDERS, folders), [folders])
+  useEffect(() => saveState(KEYS.HISTORY, requestHistory), [requestHistory])
+  useEffect(() => saveState(KEYS.VARS, variables), [variables])
+
+  // Original handlers
   const handleSelectRequest = (req) => {
     setActiveRequest(req)
     setStatus("")
@@ -209,6 +217,15 @@ function WebApp() {
       {/* Header */}
       <header className="flex items-center justify-between border-b bg-muted/10 backdrop-blur-md px-6 py-3">
         <div className="flex items-center gap-3">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={resetState}
+            className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
+            title="Reset to default (Clear data)"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
