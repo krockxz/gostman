@@ -31,45 +31,16 @@ const methodColors = {
   HEAD: "head",
 }
 
-const EmptyStateCollections = ({ hasSearch }) => (
+const EmptyState = ({ icon: Icon, title, description, color = "primary" }) => (
   <div className="flex h-full flex-col items-center justify-center p-8 text-center">
     <div className="mb-4 relative">
-      <div className="absolute inset-0 bg-primary/10 rounded-full blur-xl scale-150" />
-      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 shadow-lg shadow-primary/5">
-        {hasSearch ? (
-          <Search className="h-7 w-7 text-primary" />
-        ) : (
-          <Sparkles className="h-7 w-7 text-primary" />
-        )}
+      <div className={`absolute inset-0 bg-${color}/10 rounded-full blur-xl scale-150 ${color === 'blue-500' ? 'animate-pulse' : ''}`} />
+      <div className={`relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-${color}/20 to-${color}/5 border border-${color}/10 shadow-lg shadow-${color}/5`}>
+        <Icon className={`h-7 w-7 text-${color}`} />
       </div>
     </div>
-    <p className="text-sm font-medium text-foreground mb-1">
-      {hasSearch ? "No requests found" : "Create your first request"}
-    </p>
-    <p className="text-xs text-muted-foreground leading-relaxed">
-      {hasSearch
-        ? "Try adjusting your search terms"
-        : "Press Ctrl+N to get started"}
-    </p>
-  </div>
-)
-
-const EmptyStateHistory = ({ hasSearch }) => (
-  <div className="flex h-full flex-col items-center justify-center p-8 text-center">
-    <div className="mb-4 relative">
-      <div className="absolute inset-0 bg-blue-500/10 rounded-full blur-xl scale-150 animate-pulse" />
-      <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-blue-500/5 border border-blue-500/10 shadow-lg shadow-blue-500/5">
-        <Zap className="h-7 w-7 text-blue-500" />
-      </div>
-    </div>
-    <p className="text-sm font-medium text-foreground mb-1">
-      {hasSearch ? "No history found" : "No request history"}
-    </p>
-    <p className="text-xs text-muted-foreground leading-relaxed">
-      {hasSearch
-        ? "Try different search terms"
-        : "Sent requests appear here automatically"}
-    </p>
+    <p className="text-sm font-medium text-foreground mb-1">{title}</p>
+    <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
   </div>
 )
 
@@ -184,7 +155,12 @@ export function Sidebar({
 
           <div className="flex-1 overflow-y-auto scrollbar-thin">
             {filteredRequests.length === 0 && folders.length === 0 ? (
-              <EmptyStateCollections hasSearch={!!searchQuery} />
+              <EmptyState
+                icon={searchQuery ? Search : Sparkles}
+                title={searchQuery ? "No requests found" : "Create your first request"}
+                description={searchQuery ? "Try adjusting your search terms" : "Press Ctrl+N to get started"}
+                color="primary"
+              />
             ) : (
               <div className="p-2 space-y-0.5">
                 {/* Render Folders */}
@@ -266,7 +242,12 @@ export function Sidebar({
 
             <div className="flex-1 overflow-y-auto scrollbar-thin">
               {filteredHistory.length === 0 ? (
-                <EmptyStateHistory hasSearch={!!historySearchQuery} />
+                <EmptyState
+                  icon={historySearchQuery ? Search : Zap}
+                  title={historySearchQuery ? "No history found" : "No request history"}
+                  description={historySearchQuery ? "Try different search terms" : "Sent requests appear here automatically"}
+                  color="blue-500"
+                />
               ) : (
                 <div className="p-2 space-y-0.5">
                   {filteredHistory.map((req, idx) => (

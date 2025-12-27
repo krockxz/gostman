@@ -80,7 +80,7 @@ export function JsonViewer({ data }) {
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between border-b bg-muted/20 px-4 py-2">
+      <div className="flex items-center justify-between border-b border-border/50 bg-muted/20 px-4 py-2 bg-muted/20">
         <div className="flex gap-2">
           <Button
             size="sm"

@@ -33,9 +33,9 @@ export function ResponsePanel({ response, status, responseType = 'text', respons
   const hasPreview = responseType === 'html' || responseType === 'image'
 
   return (
-    <div className="flex h-[40%] flex-col border-t bg-muted/5">
+    <div className="flex h-[40%] flex-col border-t border-border/50 bg-muted/5">
       {/* Response Header */}
-      <div className="flex items-center justify-between border-b bg-muted/10 px-4 py-2 backdrop-blur-sm">
+      <div className="flex items-center justify-between border-b border-border/50 bg-muted/20 px-4 py-2.5 backdrop-blur-sm">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold">Response</span>

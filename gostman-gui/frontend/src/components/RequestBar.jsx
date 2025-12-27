@@ -38,7 +38,7 @@ export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameC
   }, [onSend, onSave])
 
   return (
-    <div className="border-b bg-muted/10 backdrop-blur-sm">
+    <div className="border-b border-border/50 bg-muted/20 backdrop-blur-sm">
       <div className="flex items-center gap-3 px-4 py-3">
         {/* Method Selector */}
         <div className="relative">

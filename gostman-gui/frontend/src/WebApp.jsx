@@ -12,38 +12,7 @@ import { CodeSnippetDialog } from "./components/CodeSnippetDialog"
 import { generateAllSnippets } from "./lib/codeGenerator"
 import { parseVariables } from "./lib/variables"
 import { prepareRequest, processResponse } from "./lib/requestUtils"
-
-const DEFAULT_REQUEST = {
-  id: "",
-  name: "New Request",
-  method: "GET",
-  url: "",
-  headers: "{}",
-  body: "",
-  queryParams: "{}",
-  response: "",
-  responseHeaders: {},
-  responseType: "text" // text, image, html
-}
-
-// Mock data for web version (replace with actual API calls)
-const mockRequests = [
-  {
-    id: "1",
-    name: "Example GET Request",
-    method: "GET",
-    url: "https://api.example.com/users",
-    headers: '{"Content-Type": "application/json"}',
-    body: "",
-    queryParams: '{}',
-    response: '{"status": "success", "data": []}',
-    folderId: null
-  }
-]
-
-const mockFolders = [
-  { id: "f1", name: "User API", isOpen: true }
-]
+import { DEFAULT_REQUEST, mockRequests, mockFolders } from "./lib/mockData"
 
 function WebApp() {
   const [showLanding, setShowLanding] = useState(true)
