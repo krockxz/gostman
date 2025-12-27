@@ -19,19 +19,19 @@ jobs:
             os: ubuntu-latest
             build-name: Gostman-linux-amd64
             build-path: gostman-gui/build/bin
-            
+
           - name: Windows
             os: windows-latest
             build-name: Gostman-windows-amd64
             build-path: gostman-gui/build/bin
-            
+
           - name: macOS
             os: macos-latest
             build-name: Gostman-darwin-universal
             build-path: gostman-gui/build/bin
 
     runs-on: ${{ matrix.os }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -40,7 +40,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
-          
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
@@ -51,7 +51,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libfuse2
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libfuse2 squashfs-tools
 
       # Install Wails
       - name: Install Wails
@@ -75,11 +75,16 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         working-directory: ./gostman-gui
         run: |
-          # Install appimagetool
-          wget -O appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x appimagetool
-          # Extract appimagetool using unsquashfs to avoid FUSE requirement
-          unsquashfs -f -d appimagetool-squashfs appimagetool
+          # Download appimagetool
+          wget -q --show-progress https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+
+          # Extract the squashfs filesystem directly (bypasses AppImage execution)
+          # Find offset of squashfs image
+          offset=$(awk 'BEGIN{FS=NULL} /^hsqs/{print NR; exit}' appimagetool-x86_64.AppImage)
+          dd if=appimagetool-x86_64.AppImage of=appimagetool.squashfs bs=1 skip=$offset 2>/dev/null
+
+          # Extract squashfs contents
+          unsquashfs -f -d appimagetool appimagetool.squashfs
 
           # Create AppDir structure
           mkdir -p AppDir/usr/bin
@@ -106,7 +111,7 @@ jobs:
           cp AppDir/usr/share/applications/gostman.desktop AppDir/gostman.desktop
 
           # Build AppImage using extracted appimagetool
-          ARCH=x86_64 appimagetool-squashfs/AppRun AppDir Gostman-linux-amd64.AppImage
+          ARCH=x86_64 appimagetool/AppRun AppDir Gostman-linux-amd64.AppImage
 
           # Move to build/bin for consistency
           mv Gostman-linux-amd64.AppImage build/bin/
@@ -153,7 +158,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-    
+
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
