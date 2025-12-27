@@ -8,6 +8,10 @@ import { Textarea } from "./components/ui/textarea"
 import { Button } from "./components/ui/button"
 import { ScrollArea } from "./components/ui/scroll-area"
 import { Braces, Hash, Heading1, FolderOpen, ArrowLeft } from "lucide-react"
+import { CodeSnippetDialog } from "./components/CodeSnippetDialog"
+import { generateAllSnippets } from "./lib/codeGenerator"
+import { parseVariables } from "./lib/variables"
+import { prepareRequest, processResponse } from "./lib/requestUtils"
 
 const DEFAULT_REQUEST = {
   id: "",
@@ -17,7 +21,9 @@ const DEFAULT_REQUEST = {
   headers: "{}",
   body: "",
   queryParams: "{}",
-  response: ""
+  response: "",
+  responseHeaders: {},
+  responseType: "text" // text, image, html
 }
 
 // Mock data for web version (replace with actual API calls)
@@ -30,30 +36,78 @@ const mockRequests = [
     headers: '{"Content-Type": "application/json"}',
     body: "",
     queryParams: '{}',
-    response: '{"status": "success", "data": []}'
+    response: '{"status": "success", "data": []}',
+    folderId: null
   }
+]
+
+const mockFolders = [
+  { id: "f1", name: "User API", isOpen: true }
 ]
 
 function WebApp() {
   const [showLanding, setShowLanding] = useState(true)
   const [requests, setRequests] = useState(mockRequests)
+  const [folders, setFolders] = useState(mockFolders)
+  const [requestHistory, setRequestHistory] = useState([])
   const [activeRequest, setActiveRequest] = useState(DEFAULT_REQUEST)
   const [variables, setVariables] = useState("{}")
   const [status, setStatus] = useState("")
   const [loading, setLoading] = useState(false)
+
+  // Code Generator state
+  const [showCodeDialog, setShowCodeDialog] = useState(false)
+  const [snippets, setSnippets] = useState({})
 
   const handleSelectRequest = (req) => {
     setActiveRequest(req)
     setStatus("")
   }
 
-  const handleNewRequest = () => {
-    setActiveRequest(DEFAULT_REQUEST)
+  const handleNewRequest = (folderId = null) => {
+    const newReq = { ...DEFAULT_REQUEST, folderId }
+    setActiveRequest(newReq)
     setStatus("")
+  }
+
+  const handleCreateFolder = () => {
+    const name = prompt("Enter folder name:")
+    if (name) {
+      setFolders([...folders, { id: Date.now().toString(), name, isOpen: true }])
+    }
+  }
+
+  const handleDeleteFolder = (folderId) => {
+    if (confirm("Delete folder? Requests inside will be moved to root.")) {
+      // Move requests to root
+      setRequests(prev => prev.map(r => r.folderId === folderId ? { ...r, folderId: null } : r))
+      // Delete folder
+      setFolders(prev => prev.filter(f => f.id !== folderId))
+    }
+  }
+
+  const handleToggleFolder = (folderId) => {
+    setFolders(prev => prev.map(f => f.id === folderId ? { ...f, isOpen: !f.isOpen } : f))
   }
 
   const handleSave = async () => {
     // Web version - save to localStorage or API
+    // If saving a new request, keep its folderId from activeRequest (if assigned)
+    const newRequest = {
+      ...activeRequest,
+      id: activeRequest.id || Date.now().toString()
+    }
+
+    if (activeRequest.id) {
+      // Update existing
+      setRequests(prev => prev.map(r => r.id === activeRequest.id ? newRequest : r))
+    } else {
+      // Create new
+      setRequests(prev => [...prev, newRequest])
+    }
+
+    // Update active request to have the ID if it was new
+    setActiveRequest(newRequest)
     alert("Request saved! (Web version)")
   }
 
@@ -61,31 +115,103 @@ function WebApp() {
     if (!id) return
     if (confirm("Are you sure you want to delete this request?")) {
       setRequests(requests.filter(r => r.id !== id))
-      handleNewRequest()
+      if (activeRequest.id === id) {
+        handleNewRequest()
+      }
+    }
+  }
+
+  // History handlers
+  const addToHistory = (request) => {
+    const historyItem = {
+      ...request,
+      id: Date.now().toString(), // Unique ID for history item
+      timestamp: new Date().toISOString()
+    }
+
+    setRequestHistory(prev => {
+      // Add to front, limit to 50 items
+      const newHistory = [historyItem, ...prev]
+      return newHistory.slice(0, 50)
+    })
+  }
+
+  const handleSelectHistoryItem = (item) => {
+    // Load history item into active request, but keep it distinct (new ID if saved)
+    setActiveRequest({
+      ...item,
+      id: "", // Reset ID so it's treated as new/unsaved
+      name: item.name || "History Request"
+    })
+    setStatus(item.response ? "Loaded from history" : "")
+  }
+
+  const handleDeleteHistoryItem = (id) => {
+    setRequestHistory(prev => prev.filter(item => item.id !== id))
+  }
+
+  const handleClearHistory = () => {
+    if (confirm("Clear all request history?")) {
+      setRequestHistory([])
     }
   }
 
   const handleSend = async () => {
     setLoading(true)
     setStatus("Sending...")
+
+    // Parse variables
+    const varsMap = parseVariables(variables)
+
+    // Prepare request using utility (Logic extracted)
+    const { url, method, headers, body } = prepareRequest(activeRequest, varsMap)
+
+    // Add to history
+    addToHistory({
+      ...activeRequest,
+      url: url // Store the final URL
+    })
+
     // Web version - make actual API call via fetch
     try {
-      const response = await fetch(activeRequest.url, {
-        method: activeRequest.method,
-        headers: JSON.parse(activeRequest.headers || "{}"),
-        body: ["POST", "PUT", "PATCH"].includes(activeRequest.method)
-          ? activeRequest.body
-          : undefined
+      const response = await fetch(url, {
+        method,
+        headers,
+        body
       })
-      const text = await response.text()
-      setActiveRequest(prev => ({ ...prev, response: text }))
-      setStatus(`${response.status} ${response.statusText}`)
+
+      // Process response using utility (Logic extracted)
+      const { response: responseData, responseHeaders, responseType, status: statusText } = await processResponse(response)
+
+      setActiveRequest(prev => ({
+        ...prev,
+        response: responseData,
+        responseHeaders,
+        responseType
+      }))
+      setStatus(statusText)
     } catch (e) {
-      setActiveRequest(prev => ({ ...prev, response: "Error: " + e.message }))
+      setActiveRequest(prev => ({
+        ...prev,
+        response: "Error: " + e.message,
+        responseType: "text"
+      }))
       setStatus("Error")
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleGenerateCode = () => {
+    const generated = generateAllSnippets(
+      activeRequest.method,
+      activeRequest.url,
+      activeRequest.headers,
+      activeRequest.body,
+      activeRequest.queryParams
+    )
+    setSnippets(generated)
+    setShowCodeDialog(true)
   }
 
   const handleSaveVars = async () => {
@@ -131,17 +257,25 @@ function WebApp() {
             <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Web Version</p>
           </div>
         </div>
-
       </header>
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
           requests={requests}
+          folders={folders}
+          requestHistory={requestHistory}
           activeRequest={activeRequest}
           onSelectRequest={handleSelectRequest}
-          onNewRequest={handleNewRequest}
+          onSelectHistoryItem={handleSelectHistoryItem}
+          onDeleteHistoryItem={handleDeleteHistoryItem}
+          onClearHistory={handleClearHistory}
+          onNewRequest={() => handleNewRequest(null)}
           onDeleteRequest={handleDelete}
+          onCreateFolder={handleCreateFolder}
+          onDeleteFolder={handleDeleteFolder}
+          onToggleFolder={handleToggleFolder}
+          onNewRequestInFolder={handleNewRequest}
         />
 
         <div className="flex flex-1 flex-col overflow-hidden">
@@ -152,6 +286,7 @@ function WebApp() {
             onNameChange={(val) => updateField('name', val)}
             onSend={handleSend}
             onSave={handleSave}
+            onGenerateCode={handleGenerateCode}
             loading={loading}
           />
 
@@ -234,9 +369,21 @@ function WebApp() {
               </div>
             </Tabs>
 
-            <ResponsePanel response={activeRequest.response} status={status} />
+            <ResponsePanel
+              response={activeRequest.response}
+              status={status}
+              responseHeaders={activeRequest.responseHeaders}
+              responseType={activeRequest.responseType}
+            />
           </div>
         </div>
+
+        {showCodeDialog && (
+          <CodeSnippetDialog
+            snippets={snippets}
+            onClose={() => setShowCodeDialog(false)}
+          />
+        )}
       </div>
     </div>
   )
