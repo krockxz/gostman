@@ -78,8 +78,8 @@ jobs:
           # Install appimagetool
           wget -O appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool
-          # Extract appimagetool to run without FUSE
-          ./appimagetool --appimage-extract
+          # Extract appimagetool using unsquashfs to avoid FUSE requirement
+          unsquashfs -f -d appimagetool-squashfs appimagetool
 
           # Create AppDir structure
           mkdir -p AppDir/usr/bin
@@ -106,7 +106,7 @@ jobs:
           cp AppDir/usr/share/applications/gostman.desktop AppDir/gostman.desktop
 
           # Build AppImage using extracted appimagetool
-          ARCH=x86_64 squashfs-root/AppRun AppDir Gostman-linux-amd64.AppImage
+          ARCH=x86_64 appimagetool-squashfs/AppRun AppDir Gostman-linux-amd64.AppImage
 
           # Move to build/bin for consistency
           mv Gostman-linux-amd64.AppImage build/bin/
