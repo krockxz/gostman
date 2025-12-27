@@ -12,6 +12,7 @@ import { CodeSnippetDialog } from "./components/CodeSnippetDialog"
 import { generateAllSnippets } from "./lib/codeGenerator"
 import { parseVariables } from "./lib/variables"
 import { prepareRequest, processResponse } from "./lib/requestUtils"
+import { sendProxyRequest } from "./lib/api"
 import { DEFAULT_REQUEST, mockRequests, mockFolders } from "./lib/mockData"
 import { loadState, saveState, resetState, KEYS } from "./lib/storage"
 
@@ -137,22 +138,23 @@ function WebApp() {
     setLoading(true)
     setStatus("Sending...")
 
-    // Parse variables
-    const varsMap = parseVariables(variables)
-
-    // Prepare request using utility (Logic extracted)
-    const { url, method, headers, body } = prepareRequest(activeRequest, varsMap)
-
-    // Add to history
-    addToHistory({
-      ...activeRequest,
-      url: url // Store the final URL
-    })
-
-    // Web version - make actual API call via fetch
     try {
-      const response = await fetch(url, {
+      // Parse variables
+      const varsMap = parseVariables(variables)
+
+      // Prepare request using utility (Logic extracted)
+      const { url, method, headers, body } = prepareRequest(activeRequest, varsMap)
+
+      // Add to history
+      addToHistory({
+        ...activeRequest,
+        url: url // Store the final URL
+      })
+
+      // Web version - make request via proxy to avoid CORS
+      const response = await sendProxyRequest({
         method,
+        url,
         headers,
         body
       })
