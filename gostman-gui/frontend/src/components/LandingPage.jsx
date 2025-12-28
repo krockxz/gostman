@@ -79,7 +79,7 @@ const DOWNLOAD_OPTIONS = [
     os: "macOS",
     desc: "Universal Binary (Intel + Apple Silicon)",
     icon: Apple,
-    href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-darwin-universal.dmg",
+    href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-darwin-universal.zip",
     iconColor: "text-foreground/90"
   },
   {
@@ -93,7 +93,7 @@ const DOWNLOAD_OPTIONS = [
     os: "Linux",
     desc: "AppImage (Universal)",
     icon: Server,
-    href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-linux-amd64.AppImage",
+    href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-linux-amd64.zip",
     iconColor: "text-amber-400"
   }
 ]

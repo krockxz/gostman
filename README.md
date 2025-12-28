@@ -42,9 +42,9 @@ Visit the [Releases](https://github.com/krockxz/gostman/releases) page to downlo
 
 | OS | Format | Download |
 |----|--------|----------|
-| **macOS** | `.dmg` | [Universal Binary (Intel + Apple Silicon)](https://github.com/krockxz/gostman/releases/latest/download/Gostman-darwin-universal.dmg) |
+| **macOS** | `.zip` | [Universal Binary (Intel + Apple Silicon)](https://github.com/krockxz/gostman/releases/latest/download/Gostman-darwin-universal.zip) |
 | **Windows**| `.exe` | [64-bit Installer](https://github.com/krockxz/gostman/releases/latest/download/Gostman-windows-amd64.exe) |
-| **Linux** | `.AppImage`| [Universal AppImage](https://github.com/krockxz/gostman/releases/latest/download/Gostman-linux-amd64.AppImage) |
+| **Linux** | `.zip`| [Universal AppImage](https://github.com/krockxz/gostman/releases/latest/download/Gostman-linux-amd64.zip) |
 
 ### Build from Source
 

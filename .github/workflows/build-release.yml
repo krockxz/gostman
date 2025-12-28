@@ -115,6 +115,10 @@ jobs:
 
           # Move to build/bin for consistency
           mv Gostman-linux-amd64.AppImage build/bin/
+          
+          # Create a zip for consistency with other platforms
+          cd build/bin
+          zip -r Gostman-linux-amd64.zip Gostman-linux-amd64.AppImage
 
       # Rename binaries for consistency
       - name: Rename Windows binary
@@ -138,7 +142,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.build-name }}
-          path: ${{ matrix.build-path }}/Gostman-linux-amd64.AppImage
+          path: ${{ matrix.build-path }}/Gostman-linux-amd64.zip
 
       - name: Upload Windows artifact
         if: matrix.os == 'windows-latest'
@@ -172,7 +176,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ./artifacts/Gostman-linux-amd64/Gostman-linux-amd64.AppImage
+            ./artifacts/Gostman-linux-amd64/Gostman-linux-amd64.zip
             ./artifacts/Gostman-windows-amd64/Gostman-windows-amd64.exe
             ./artifacts/Gostman-darwin-universal/Gostman-darwin-universal.zip
           draft: false
