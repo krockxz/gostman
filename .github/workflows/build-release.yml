@@ -9,6 +9,9 @@ on:
 env:
   WAILS_VERSION: 'latest'
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -172,7 +175,6 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            ./artifacts/Gostman-linux-amd64/Gostman-linux-amd64.zip
             ./artifacts/Gostman-windows-amd64/Gostman-windows-amd64.exe
             ./artifacts/Gostman-darwin-universal/Gostman-darwin-universal.zip
           draft: false
