@@ -89,13 +89,6 @@ const DOWNLOAD_OPTIONS = [
     href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-windows-amd64.exe",
     iconColor: "text-blue-400"
   },
-  {
-    os: "Linux",
-    desc: "AppImage (Universal)",
-    icon: Server,
-    href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-linux-amd64.zip",
-    iconColor: "text-amber-400"
-  }
 ]
 
 const TypingAnimation = ({ text, delay = 100 }) => {

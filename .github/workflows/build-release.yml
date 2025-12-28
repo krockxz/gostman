@@ -15,10 +15,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Linux
-            os: ubuntu-latest
-            build-name: Gostman-linux-amd64
-            build-path: gostman-gui/build/bin
 
           - name: Windows
             os: windows-latest
