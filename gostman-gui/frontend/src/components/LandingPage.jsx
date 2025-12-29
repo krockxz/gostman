@@ -7,21 +7,14 @@ import {
   Zap,
   Download,
   Globe,
-  Keyboard,
   Code,
-  Shield,
   Github,
   ArrowRight,
   Check,
-  Server,
-  Braces,
   FolderOpen,
-  Sparkles,
-  Cpu,
-  Gauge,
+  Command,
   Star,
   ChevronDown,
-  Command, // For Shortcuts
 } from "lucide-react"
 
 const AppleIcon = ({ className }) => (
@@ -194,10 +187,15 @@ export function LandingPage({ onGetStarted }) {
   const [stars, setStars] = useState(null)
 
   useEffect(() => {
-    fetch("https://api.github.com/repos/krockxz/gostman")
-      .then((res) => res.json())
-      .then((data) => setStars(data.stargazers_count))
-      .catch((err) => console.error("Failed to fetch stars:", err))
+    fetch("/api/stars")
+      .then((res) => {
+        if (!res.ok) throw new Error("API response not ok")
+        return res.json()
+      })
+      .then((data) => setStars(data.stars))
+      .catch((err) => {
+        console.error("Failed to fetch stars from API:", err)
+      })
   }, [])
 
   useEffect(() => {

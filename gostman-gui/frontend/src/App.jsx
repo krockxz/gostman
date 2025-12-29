@@ -28,7 +28,7 @@ let nextTabId = 1
 function App() {
   const [requests, setRequests] = useState([])
   const [requestHistory, setRequestHistory] = useState([])
-  const [tabs, setTabs] = useState([{ id: 'tab-1', request: { ...DEFAULT_REQUEST }, status: '', loading: false }])
+  const [tabs, setTabs] = useState([{ id: 'tab-1', request: { ...DEFAULT_REQUEST }, status: '', loading: false, responseTime: null }])
   const [activeTabId, setActiveTabId] = useState('tab-1')
   const [variables, setVariables] = useState("{}")
   const [codeDialogOpen, setCodeDialogOpen] = useState(false)
@@ -79,7 +79,8 @@ function App() {
       id: `tab-${nextTabId}`,
       request: { ...DEFAULT_REQUEST },
       status: '',
-      loading: false
+      loading: false,
+      responseTime: null
     }
     setTabs(prev => [...prev, newTab])
     setActiveTabId(newTab.id)
@@ -100,7 +101,7 @@ function App() {
   }
 
   const handleSelectRequest = (req) => {
-    updateActiveTab({ request: req, status: '' })
+    updateActiveTab({ request: req, status: '', responseTime: null })
   }
 
   const handleNewRequest = () => {
@@ -131,7 +132,11 @@ function App() {
   }
 
   const handleSend = async () => {
-    updateActiveTab({ loading: true, status: 'Sending...' })
+    updateActiveTab({ loading: true, status: 'Sending...', responseTime: null })
+    const startTime = performance.now()
+
+    const getResponseTime = () => Math.round(performance.now() - startTime)
+
     try {
       const resp = await SendRequest(
         activeTab.request.method,
@@ -140,22 +145,23 @@ function App() {
         activeTab.request.body,
         activeTab.request.queryParams
       )
+
       updateActiveTab({
         request: { ...activeTab.request, response: resp.body },
         status: resp.status,
+        responseTime: getResponseTime(),
         loading: false
       })
 
-      // Auto-log to history
       addToHistory(activeTab.request)
     } catch (e) {
       updateActiveTab({
         request: { ...activeTab.request, response: "Error: " + e },
         status: "Error",
+        responseTime: getResponseTime(),
         loading: false
       })
 
-      // Also log failed requests to history
       addToHistory(activeTab.request)
     }
   }
@@ -178,8 +184,7 @@ function App() {
   }
 
   const handleSelectHistoryItem = (historyItem) => {
-    // Load history item into active tab
-    updateActiveTab({ request: { ...historyItem, response: '' }, status: '' })
+    updateActiveTab({ request: { ...historyItem, response: '' }, status: '', responseTime: null })
   }
 
   const handleDeleteHistoryItem = (id) => {
@@ -345,7 +350,11 @@ function App() {
               </div>
             </Tabs>
 
-            <ResponsePanel response={activeTab.request.response} status={activeTab.status} />
+            <ResponsePanel
+              response={activeTab.request.response}
+              status={activeTab.status}
+              responseTime={activeTab.responseTime}
+            />
           </div>
         </div>
       </div>

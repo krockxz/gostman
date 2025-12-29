@@ -25,6 +25,7 @@ function WebApp() {
   const [variables, setVariables] = useState(() => loadState(KEYS.VARS, "{}"))
   const [status, setStatus] = useState("")
   const [loading, setLoading] = useState(false)
+  const [responseTime, setResponseTime] = useState(null)
 
   // Code Generator state
   const [showCodeDialog, setShowCodeDialog] = useState(false)
@@ -40,12 +41,14 @@ function WebApp() {
   const handleSelectRequest = (req) => {
     setActiveRequest(req)
     setStatus("")
+    setResponseTime(null)
   }
 
   const handleNewRequest = (folderId = null) => {
     const newReq = { ...DEFAULT_REQUEST, folderId }
     setActiveRequest(newReq)
     setStatus("")
+    setResponseTime(null)
   }
 
   const handleCreateFolder = () => {
@@ -115,13 +118,13 @@ function WebApp() {
   }
 
   const handleSelectHistoryItem = (item) => {
-    // Load history item into active request, but keep it distinct (new ID if saved)
     setActiveRequest({
       ...item,
-      id: "", // Reset ID so it's treated as new/unsaved
+      id: "",
       name: item.name || "History Request"
     })
     setStatus(item.response ? "Loaded from history" : "")
+    setResponseTime(null)
   }
 
   const handleDeleteHistoryItem = (id) => {
@@ -137,31 +140,21 @@ function WebApp() {
   const handleSend = async () => {
     setLoading(true)
     setStatus("Sending...")
+    setResponseTime(null)
+    const startTime = performance.now()
+
+    const getResponseTime = () => Math.round(performance.now() - startTime)
 
     try {
-      // Parse variables
       const varsMap = parseVariables(variables)
-
-      // Prepare request using utility (Logic extracted)
       const { url, method, headers, body } = prepareRequest(activeRequest, varsMap)
 
-      // Add to history
-      addToHistory({
-        ...activeRequest,
-        url: url // Store the final URL
-      })
+      addToHistory({ ...activeRequest, url })
 
-      // Web version - make request via proxy to avoid CORS
-      const response = await sendProxyRequest({
-        method,
-        url,
-        headers,
-        body
-      })
-
-      // Process response using utility (Logic extracted)
+      const response = await sendProxyRequest({ method, url, headers, body })
       const { response: responseData, responseHeaders, responseType, status: statusText } = await processResponse(response)
 
+      setResponseTime(getResponseTime())
       setActiveRequest(prev => ({
         ...prev,
         response: responseData,
@@ -170,6 +163,7 @@ function WebApp() {
       }))
       setStatus(statusText)
     } catch (e) {
+      setResponseTime(getResponseTime())
       setActiveRequest(prev => ({
         ...prev,
         response: "Error: " + e.message,
@@ -365,6 +359,7 @@ function WebApp() {
               status={status}
               responseHeaders={activeRequest.responseHeaders}
               responseType={activeRequest.responseType}
+              responseTime={responseTime}
             />
           </div>
         </div>
