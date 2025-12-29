@@ -6,7 +6,7 @@
   <h1 style="margin-top: 20px;">The HTTP Client For the Go Era</h1>
   
   <p style="font-size: 1.2em; color: #666;">
-    Native, lightweight, and blazing fast. The developer's choice for API testing.
+    The Native HTTP Client. 10x lighter than Postman.
   </p>
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

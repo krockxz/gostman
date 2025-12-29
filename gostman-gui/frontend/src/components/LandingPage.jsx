@@ -4,7 +4,6 @@ import { Badge } from "./ui/badge"
 import { Card, CardContent } from "./ui/card"
 import { cn } from "../lib/utils"
 import {
-  Terminal,
   Zap,
   Download,
   Globe,
@@ -15,14 +14,17 @@ import {
   ArrowRight,
   Check,
   Apple,
-  Monitor,
+  Monitor, // For Windows
+  Terminal, // For Linux
   Server,
   Braces,
   FolderOpen,
   Sparkles,
   Cpu,
   Gauge,
+  Star,
   ChevronDown,
+  Command, // For Shortcuts
 } from "lucide-react"
 import logo from "../assets/logo.jpg"
 
@@ -36,7 +38,7 @@ const FEATURES = [
   {
     icon: Braces,
     title: "JSON Syntax Highlighting",
-    description: "Beautifully formatted responses with color-coded syntax",
+    description: "Beautifully formatted responses. No more squinting at raw text.",
     gradient: "from-cyan-400 to-blue-500",
   },
   {
@@ -46,15 +48,15 @@ const FEATURES = [
     gradient: "from-purple-400 to-pink-500",
   },
   {
-    icon: Keyboard,
+    icon: Command,
     title: "Keyboard Shortcuts",
-    description: "Power user shortcuts for rapid API testing workflows",
+    description: "Cmd + Enter to Send. Designed for speed enthusiasts.",
     gradient: "from-green-400 to-emerald-500",
   },
   {
     icon: Code,
     title: "Environment Variables",
-    description: "Manage multiple environments with dynamic variable support",
+    description: "Use {{base_url}} in your requests. Switch configs instantly.",
     gradient: "from-blue-400 to-indigo-500",
   },
   {
@@ -88,6 +90,13 @@ const DOWNLOAD_OPTIONS = [
     icon: Monitor,
     href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-windows-amd64.exe",
     iconColor: "text-blue-400"
+  },
+  {
+    os: "Linux",
+    desc: "AppImage & Deb",
+    icon: Terminal,
+    href: "https://github.com/krockxz/gostman/releases/latest",
+    iconColor: "text-orange-400"
   },
 ]
 
@@ -180,6 +189,14 @@ const DownloadDropdown = () => {
 export function LandingPage({ onGetStarted }) {
   const [scrollY, setScrollY] = useState(0)
   const [isVisible, setIsVisible] = useState({})
+  const [stars, setStars] = useState(null)
+
+  useEffect(() => {
+    fetch("https://api.github.com/repos/krockxz/gostman")
+      .then((res) => res.json())
+      .then((data) => setStars(data.stargazers_count))
+      .catch((err) => console.error("Failed to fetch stars:", err))
+  }, [])
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY)
@@ -229,8 +246,29 @@ export function LandingPage({ onGetStarted }) {
                 rel="noopener noreferrer"
                 className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "gap-2 text-sm")}
               >
-                <Github className="h-4 w-4" />
-                GitHub
+                {stars !== null ? (
+                  <>
+                    <div className="flex items-center gap-1.5 border-r border-border/50 pr-2 mr-2">
+                      <Github className="h-4 w-4" />
+                      <span className="font-semibold">Star</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
+                      <Star className="h-3.5 w-3.5 fill-current" />
+                      <span className="font-mono text-xs">{stars.toLocaleString()}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5 border-r border-border/50 pr-2 mr-2">
+                      <Github className="h-4 w-4" />
+                      <span className="font-semibold">Star</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
+                      <Star className="h-3.5 w-3.5 fill-current" />
+                      <span className="font-mono text-xs">--</span>
+                    </div>
+                  </>
+                )}
               </a>
             </div>
           </div>
@@ -256,7 +294,7 @@ export function LandingPage({ onGetStarted }) {
             </h1>
 
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              <TypingAnimation text="Native, lightweight, and blazing fast. The developer's choice for API testing." delay={50} />
+              <TypingAnimation text="The Native HTTP Client. 10x lighter than Postman." delay={50} />
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
@@ -282,6 +320,13 @@ export function LandingPage({ onGetStarted }) {
                 <span>Open source</span>
               </div>
             </div>
+
+            <div className="pt-8 flex justify-center">
+              <Badge variant="outline" className="gap-2 py-1.5 px-4 bg-background/50 backdrop-blur border-primary/20">
+                <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                Powered by Wails (Go + React)
+              </Badge>
+            </div>
           </div>
 
           {/* App Preview */}
@@ -294,22 +339,50 @@ export function LandingPage({ onGetStarted }) {
                   <div className="w-3 h-3 rounded-full bg-yellow-400/80" />
                   <div className="w-3 h-3 rounded-full bg-green-400/80" />
                 </div>
-                <div className="flex-1 text-center">
-                  <span className="text-xs font-mono text-muted-foreground">Gostman HTTP Client</span>
+                <div className="flex-1 text-center flex items-center justify-center gap-2">
+                  <span className="text-xs font-mono text-muted-foreground">GET https://api.gostman.io/v1/users</span>
                 </div>
               </div>
-              <div className="aspect-[16/9] bg-gradient-to-br from-muted/20 to-muted/5 flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-cyan-500 text-primary-foreground font-bold shadow-2xl shadow-primary/30 mx-auto">
-                    <Terminal className="h-10 w-10" />
+              <div className="aspect-[16/9] bg-background relative overflow-hidden group">
+                {/* Mock Interface using HTML/CSS since Image Generation Failed */}
+                <div className="absolute inset-0 flex">
+                  <div className="w-64 border-r border-border/40 hidden md:block bg-muted/5 p-4 space-y-3">
+                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4">Collections</div>
+                    <div className="p-2 rounded bg-primary/10 text-primary text-sm font-medium">User API</div>
+                    <div className="p-2 rounded hover:bg-muted/10 text-muted-foreground text-sm">Auth Flow</div>
+                    <div className="p-2 rounded hover:bg-muted/10 text-muted-foreground text-sm">Payments</div>
                   </div>
-                  <p className="text-lg font-medium text-muted-foreground">
-                    Your API testing workspace
-                  </p>
-                  <Button onClick={onGetStarted} className="gap-2">
-                    Launch Gostman
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
+                  <div className="flex-1 flex flex-col">
+                    <div className="h-12 border-b border-border/40 flex items-center px-4 gap-4">
+                      <span className="text-blue-400 font-bold text-sm">GET</span>
+                      <div className="flex-1 bg-muted/10 h-8 rounded text-sm flex items-center px-3 text-muted-foreground font-mono">https://api.gostman.io/v1/users</div>
+                      <Button size="sm" className="h-8">Send</Button>
+                    </div>
+                    <div className="flex-1 p-4 font-mono text-sm overflow-hidden relative">
+                      <div className="flex justify-between items-center mb-4 text-xs text-muted-foreground border-b border-border/40 pb-2">
+                        <span className="text-green-400 font-bold">200 OK</span>
+                        <span>45ms</span>
+                        <span>1.2KB</span>
+                      </div>
+                      <div className="space-y-1 text-muted-foreground">
+                        <div><span className="text-yellow-400">{"{"}</span></div>
+                        <div className="pl-4"><span className="text-blue-400">"status"</span>: <span className="text-green-400">"success"</span>,</div>
+                        <div className="pl-4"><span className="text-blue-400">"data"</span>: <span className="text-yellow-400">{"["}</span></div>
+                        <div className="pl-8"><span className="text-blue-400">{"{"}</span></div>
+                        <div className="pl-12"><span className="text-blue-400">"id"</span>: <span className="text-purple-400">101</span>,</div>
+                        <div className="pl-12"><span className="text-blue-400">"username"</span>: <span className="text-green-400">"gopher_fan"</span>,</div>
+                        <div className="pl-12"><span className="text-blue-400">"role"</span>: <span className="text-green-400">"admin"</span></div>
+                        <div className="pl-8"><span className="text-blue-400">{"},"}</span></div>
+                        <div className="pl-8"><span className="text-blue-400">{"{"}</span></div>
+                        <div className="pl-12"><span className="text-blue-400">"id"</span>: <span className="text-purple-400">102</span>,</div>
+                        <div className="pl-12"><span className="text-blue-400">"username"</span>: <span className="text-green-400">"rust_enjoyer"</span>,</div>
+                        <div className="pl-12"><span className="text-blue-400">"role"</span>: <span className="text-green-400">"user"</span></div>
+                        <div className="pl-8"><span className="text-blue-400">{"}"}</span></div>
+                        <div className="pl-4"><span className="text-yellow-400">{"]"}</span></div>
+                        <div><span className="text-yellow-400">{"}"}</span></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </Card>
