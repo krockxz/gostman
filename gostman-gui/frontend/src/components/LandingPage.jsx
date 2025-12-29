@@ -388,17 +388,19 @@ export function LandingPage({ onGetStarted }) {
                     <div className="p-2 rounded hover:bg-muted/10 text-muted-foreground text-sm">Auth Flow</div>
                     <div className="p-2 rounded hover:bg-muted/10 text-muted-foreground text-sm">Payments</div>
                   </div>
-                  <div className="flex-1 flex flex-col">
-                    <div className="h-12 border-b border-border/40 flex items-center px-4 gap-4">
-                      <span className="text-blue-400 font-bold text-sm">GET</span>
-                      <div className="flex-1 bg-muted/10 h-8 rounded text-sm flex items-center px-3 text-muted-foreground font-mono">https://api.gostman.io/v1/users</div>
-                      <Button size="sm" className="h-8">Send</Button>
+                  <div className="flex-1 flex flex-col min-w-0">
+                    <div className="h-12 border-b border-border/40 flex items-center px-4 gap-2 md:gap-4">
+                      <span className="text-blue-400 font-bold text-sm shrink-0">GET</span>
+                      <div className="flex-1 bg-muted/10 h-8 rounded text-sm flex items-center px-3 text-muted-foreground font-mono truncate min-w-0">
+                        <span className="truncate">https://api.gostman.io/v1/users</span>
+                      </div>
+                      <Button size="sm" className="h-8 shrink-0">Send</Button>
                     </div>
                     <div className="flex-1 p-4 font-mono text-sm overflow-hidden relative">
-                      <div className="flex justify-between items-center mb-4 text-xs text-muted-foreground border-b border-border/40 pb-2">
-                        <span className="text-green-400 font-bold">200 OK</span>
-                        <span>45ms</span>
-                        <span>1.2KB</span>
+                      <div className="flex justify-between items-center mb-4 text-xs text-muted-foreground border-b border-border/40 pb-2 gap-2">
+                        <span className="text-green-400 font-bold shrink-0">200 OK</span>
+                        <span className="shrink-0">45ms</span>
+                        <span className="shrink-0">1.2KB</span>
                       </div>
                       <div className="space-y-1 text-muted-foreground">
                         <div><span className="text-yellow-400">{"{"}</span></div>
