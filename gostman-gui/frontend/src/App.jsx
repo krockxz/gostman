@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { RotateCcw } from "lucide-react"
 import { SendRequest, GetRequests, SaveRequest, DeleteRequest, GetVariables, SaveVariables } from "../wailsjs/go/main/App"
 import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
@@ -261,6 +262,20 @@ function App() {
           </div>
         </div>
 
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            if (confirm("Reset application state? This will clear all data.")) {
+              localStorage.clear()
+              window.location.reload()
+            }
+          }}
+          className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
+          title="Reset to default (Clear data)"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </Button>
       </header>
 
       {/* Main Content */}
