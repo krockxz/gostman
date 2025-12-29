@@ -15,6 +15,11 @@ import {
   Command,
   Star,
   ChevronDown,
+  Braces,
+  Shield,
+  Sparkles,
+  Cpu,
+  Gauge,
 } from "lucide-react"
 
 const AppleIcon = ({ className }) => (
