@@ -27,17 +27,23 @@ func main() {
 
 	EditMenu := appMenu.AddSubmenu("Edit")
 	EditMenu.AddText("Undo", keys.CmdOrCtrl("z"), func(_ *menu.CallbackData) {
+		runtime.WindowExecJS(app.ctx, "document.execCommand('undo')")
 	})
 	EditMenu.AddText("Redo", keys.CmdOrCtrl("y"), func(_ *menu.CallbackData) {
+		runtime.WindowExecJS(app.ctx, "document.execCommand('redo')")
 	})
 	EditMenu.AddSeparator()
 	EditMenu.AddText("Cut", keys.CmdOrCtrl("x"), func(_ *menu.CallbackData) {
+		runtime.WindowExecJS(app.ctx, "document.execCommand('cut')")
 	})
 	EditMenu.AddText("Copy", keys.CmdOrCtrl("c"), func(_ *menu.CallbackData) {
+		runtime.WindowExecJS(app.ctx, "document.execCommand('copy')")
 	})
 	EditMenu.AddText("Paste", keys.CmdOrCtrl("v"), func(_ *menu.CallbackData) {
+		runtime.WindowExecJS(app.ctx, "document.execCommand('paste')")
 	})
 	EditMenu.AddText("Select All", keys.CmdOrCtrl("a"), func(_ *menu.CallbackData) {
+		runtime.WindowExecJS(app.ctx, "document.execCommand('selectAll')")
 	})
 
 	// Create application with options

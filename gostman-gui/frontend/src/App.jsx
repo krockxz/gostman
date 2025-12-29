@@ -5,7 +5,7 @@ import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
 import { ResponsePanel } from "./components/ResponsePanel"
 import { CodeSnippetDialog } from "./components/CodeSnippetDialog"
-import { MonacoEditor } from "./components/MonacoEditor"
+import { Textarea } from "./components/ui/textarea"
 import { TabBar } from "./components/TabBar"
 import { Button } from "./components/ui/button"
 import { ScrollArea } from "./components/ui/scroll-area"
@@ -327,7 +327,7 @@ function App() {
               variables={variables}
               onUpdateVariables={setVariables}
               onSaveVars={handleSaveVars}
-              EditorComponent={MonacoEditor}
+              EditorComponent={Textarea}
             />
 
             <ResponsePanel
