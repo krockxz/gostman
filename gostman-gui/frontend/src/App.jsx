@@ -44,28 +44,6 @@ function App() {
     }
   }, [])
 
-    // ...
-
-
-
-    // ...
-
-    < Sidebar
-  requests = { requests }
-  folders = { folders }
-  requestHistory = { requestHistory }
-  activeRequest = { activeTab.request }
-  onSelectRequest = { handleSelectRequest }
-  onSelectHistoryItem = { handleSelectHistoryItem }
-  onDeleteHistoryItem = { handleDeleteHistoryItem }
-  onClearHistory = { handleClearHistory }
-  onNewRequest = { handleNewRequest }
-  onDeleteRequest = { handleDelete }
-  onCreateFolder = { handleCreateFolder }
-  onDeleteFolder = { handleDeleteFolder }
-  onToggleFolder = { handleToggleFolder }
-  onNewRequestInFolder = { handleNewRequestInFolder }
-    />
 
     useEffect(() => {
       fetchInitialData()
