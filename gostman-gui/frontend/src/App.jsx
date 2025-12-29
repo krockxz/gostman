@@ -77,11 +77,11 @@ function App() {
     updateActiveRequest({ [field]: value })
   }
 
-  const handleNewTab = () => {
+  const handleNewTab = (folderId = null) => {
     nextTabId++
     const newTab = {
       id: `tab-${nextTabId}`,
-      request: { ...DEFAULT_REQUEST },
+      request: { ...DEFAULT_REQUEST, folderId },
       status: '',
       loading: false,
       responseTime: null
@@ -298,6 +298,7 @@ function App() {
           onCreateFolder={handleCreateFolder}
           onDeleteFolder={handleDeleteFolder}
           onToggleFolder={handleToggleFolder}
+          onNewRequestInFolder={handleNewTab}
         />
 
         <div className="flex flex-1 flex-col overflow-hidden">

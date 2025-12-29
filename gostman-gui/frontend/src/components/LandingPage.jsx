@@ -5,7 +5,6 @@ import { Card, CardContent } from "./ui/card"
 import { cn } from "../lib/utils"
 import {
   Zap,
-  Download,
   Globe,
   Code,
   Github,
@@ -14,7 +13,6 @@ import {
   FolderOpen,
   Command,
   Star,
-  ChevronDown,
   Braces,
   Shield,
   Sparkles,
@@ -22,7 +20,6 @@ import {
   Gauge,
 } from "lucide-react"
 
-import { AppleIcon, WindowsIcon, LinuxIcon } from "./Icons"
 import logo from "../assets/logo.jpg"
 
 const FEATURES = [
@@ -73,115 +70,9 @@ const COMPARISONS = [
   { feature: "Local Data Only", gostman: "✓", others: "✗" },
 ]
 
-const DOWNLOAD_OPTIONS = [
-  {
-    os: "macOS",
-    desc: "Universal Binary (Intel + Apple Silicon)",
-    icon: AppleIcon,
-    href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-darwin-universal.zip",
-    iconColor: "text-foreground/90"
-  },
-  {
-    os: "Windows",
-    desc: "64-bit Installer",
-    icon: WindowsIcon,
-    href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-windows-amd64.exe",
-    iconColor: "text-blue-400"
-  },
-  {
-    os: "Linux",
-    desc: "Linux Binary (64-bit)",
-    icon: LinuxIcon,
-    href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-linux-amd64.zip",
-    iconColor: "text-yellow-400"
-  },
-]
-
-const TypingAnimation = ({ text, delay = 100 }) => {
-  const [displayText, setDisplayText] = useState("")
-  const [index, setIndex] = useState(0)
-
-  useEffect(() => {
-    if (index < text.length) {
-      const timeout = setTimeout(() => {
-        setDisplayText((prev) => prev + text[index])
-        setIndex((prev) => prev + 1)
-      }, delay)
-      return () => clearTimeout(timeout)
-    }
-  }, [index, text, delay])
-
-  return (
-    <span className="font-mono text-primary">
-      {displayText}
-      <span className="animate-pulse">|</span>
-    </span>
-  )
-}
-
-const FloatingCode = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none">
-    <div className="absolute top-20 left-10 animate-float opacity-10">
-      <pre className="font-mono text-xs text-primary">{`GET /api/users HTTP/1.1
-Host: api.example.com`}</pre>
-    </div>
-    <div className="absolute top-40 right-20 animate-float-delayed opacity-10">
-      <pre className="font-mono text-xs text-emerald-400">{`{
-  "status": "success",
-  "data": []
-}`}</pre>
-    </div>
-    <div className="absolute bottom-40 left-20 animate-float-slow opacity-10">
-      <pre className="font-mono text-xs text-cyan-400">{`POST /api/auth
-Content-Type: application/json`}</pre>
-    </div>
-    <div className="absolute bottom-20 right-10 animate-float-delayed opacity-10">
-      <pre className="font-mono text-xs text-purple-400">{`X-Rate-Limit: 100
-X-Response-Time: 42ms`}</pre>
-    </div>
-  </div>
-)
-
-const DownloadDropdown = () => {
-  const [isOpen, setIsOpen] = useState(false)
-
-  return (
-    <div className="relative">
-      <Button
-        size="lg"
-        className="gap-3 text-lg px-8 py-6 glow shadow-xl shadow-primary/20"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Download className="h-5 w-5" />
-        Download for Desktop
-        <ChevronDown className="h-5 w-5" />
-      </Button>
-
-      {isOpen && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute top-full left-0 mt-2 z-20 min-w-[280px] rounded-xl border border-border/50 bg-background/95 backdrop-blur-xl shadow-2xl shadow-primary/20 overflow-hidden">
-            {DOWNLOAD_OPTIONS.map((option) => (
-              <a
-                key={option.os}
-                href={option.href}
-                className="flex items-center gap-3 px-4 py-3 hover:bg-primary/10 transition-colors border-b border-border/30 last:border-0"
-                onClick={() => setIsOpen(false)}
-              >
-                <option.icon className={`h-5 w-5 ${option.iconColor}`} />
-                <div className="flex-1">
-                  <div className="font-semibold">{option.os}</div>
-                  <div className="text-xs text-muted-foreground">{option.desc}</div>
-                </div>
-                <Download className="h-4 w-4 text-muted-foreground" />
-              </a>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  )
-}
+import { TypingAnimation } from "./landing/TypingAnimation"
+import { FloatingCode } from "./landing/FloatingCode"
+import { DownloadDropdown } from "./landing/DownloadDropdown"
 
 const useGitHubStars = () => {
   const [stars, setStars] = useState(null)
