@@ -214,6 +214,25 @@ function WebApp() {
       {/* Header */}
       <header className="flex items-center justify-between border-b bg-muted/10 backdrop-blur-md px-6 py-3">
         <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-cyan-500 text-primary-foreground font-bold shadow-lg shadow-primary/25">
+            <span className="text-lg">G</span>
+          </div>
+          <div>
+            <h1 className="text-base font-brand font-bold tracking-tight">Gostman</h1>
+            <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">HTTP Client</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBackToLanding}
+            className="h-8 w-8 text-muted-foreground hover:text-foreground"
+            title="Back to landing page"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -223,22 +242,6 @@ function WebApp() {
           >
             <RotateCcw className="h-4 w-4" />
           </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleBackToLanding}
-            className="h-8 w-8"
-            title="Back to landing page"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-cyan-500 text-primary-foreground font-bold shadow-lg shadow-primary/25">
-            <span className="text-lg">G</span>
-          </div>
-          <div>
-            <h1 className="text-base font-brand font-bold tracking-tight">Gostman</h1>
-            <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">Web Version</p>
-          </div>
         </div>
       </header>
 
