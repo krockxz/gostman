@@ -183,13 +183,10 @@ const DownloadDropdown = () => {
   )
 }
 
-export function LandingPage({ onGetStarted }) {
-  const [isVisible, setIsVisible] = useState({})
+const useGitHubStars = () => {
   const [stars, setStars] = useState(null)
 
   useEffect(() => {
-    // Add logic ensuring fetch is only called if mounting
-    // AbortController is a good practice for cleanup
     const controller = new AbortController();
 
     const fetchStars = async () => {
@@ -207,8 +204,6 @@ export function LandingPage({ onGetStarted }) {
         setStars(data.stars);
       } catch (err) {
         if (err.name === 'AbortError') return;
-
-        console.log("Falling back to direct GitHub API:", err.message);
 
         // Fallback to direct GitHub API
         try {
@@ -231,21 +226,12 @@ export function LandingPage({ onGetStarted }) {
     return () => controller.abort()
   }, [])
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            setIsVisible((prev) => ({ ...prev, [entry.target.id]: true }))
-          }
-        })
-      },
-      { threshold: 0.1 }
-    )
+  return stars
+}
 
-    document.querySelectorAll("[data-animate]").forEach((el) => observer.observe(el))
-    return () => observer.disconnect()
-  }, [])
+export function LandingPage({ onGetStarted }) {
+  const [isVisible, setIsVisible] = useState({})
+  const stars = useGitHubStars()
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -262,6 +248,8 @@ export function LandingPage({ onGetStarted }) {
     document.querySelectorAll("[data-animate]").forEach((el) => observer.observe(el))
     return () => observer.disconnect()
   }, [])
+
+
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
