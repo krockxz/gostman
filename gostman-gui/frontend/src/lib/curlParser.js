@@ -6,7 +6,7 @@ export function parseCurlCommand(curlCommand) {
   }
 
   const trimmed = curlCommand.trim()
-  if (!/^curl\s/i.test(trimmed)) {
+  if (!/^curl\s+/i.test(trimmed)) {
     return null
   }
 
@@ -50,5 +50,5 @@ export function parseCurlCommand(curlCommand) {
 }
 
 export function isCurlCommand(text) {
-  return text && typeof text === 'string' && /^curl\s/i.test(text.trim())
+  return text && typeof text === 'string' && /^curl\s+/i.test(text.trim())
 }

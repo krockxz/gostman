@@ -79,35 +79,28 @@ export function Sidebar({
 
   return (
     <div className="flex h-full w-64 flex-col border-r border-border/50 bg-gradient-to-b from-background via-background to-muted/20">
-      {/* Header */}
-      <div className="border-b border-border/50 px-4 py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground shadow-lg shadow-primary/25">
-              <FileJson className="h-4 w-4" />
-            </div>
-            <h2 className="text-sm font-brand font-bold tracking-tight">Gostman</h2>
-          </div>
-          <div className="flex items-center gap-1">
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={onCreateFolder}
-              className="h-8 w-8 rounded-lg bg-background/50 hover:bg-accent hover:text-accent-foreground transition-all shadow-sm border-border/50"
-              title="New Folder"
-            >
-              <FolderPlus className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={onNewRequest}
-              className="h-8 w-8 rounded-lg bg-background/50 hover:bg-accent hover:text-accent-foreground transition-all shadow-sm border-border/50"
-              title="New request (Ctrl+N)"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
-          </div>
+      {/* Toolbar */}
+      <div className="border-b border-border/50 px-4 py-2 flex items-center justify-between bg-muted/20">
+        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Explorer</span>
+        <div className="flex items-center gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onCreateFolder}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            title="New Folder"
+          >
+            <FolderPlus className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onNewRequest}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            title="New request (Ctrl+N)"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
