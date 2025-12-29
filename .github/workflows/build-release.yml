@@ -103,10 +103,6 @@ jobs:
           # Zip the package
           cd package
           zip -r ../build/bin/Gostman-linux-amd64.zip .
-          
-          # Create a zip for consistency with other platforms
-          cd build/bin
-          zip -r Gostman-linux-amd64.zip Gostman-linux-amd64.AppImage
 
       # Rename binaries for consistency
       - name: Rename Windows binary
