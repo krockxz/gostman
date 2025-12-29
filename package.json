@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "parse-curl": "^0.2.6"
+  }
+}

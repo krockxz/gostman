@@ -263,6 +263,9 @@ function App() {
             onMethodChange={(val) => updateField('method', val)}
             onUrlChange={(val) => updateField('url', val)}
             onNameChange={(val) => updateField('name', val)}
+            onHeadersChange={(val) => updateField('headers', val)}
+            onBodyChange={(val) => updateField('body', val)}
+            onQueryParamsChange={(val) => updateField('queryParams', val)}
             onSend={handleSend}
             onSave={handleSave}
             onGenerateCode={handleGenerateCode}

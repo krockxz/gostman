@@ -4,20 +4,17 @@ import { Button } from "./ui/button"
 import { Select } from "./ui/select"
 import { Input } from "./ui/input"
 import { cn } from "../lib/utils"
+import { parseCurlCommand, isCurlCommand } from "../lib/curlParser"
 
 import { HTTP_METHODS, METHOD_COLORS } from "../lib/constants"
 
-export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameChange, onSend, onSave, onGenerateCode, loading }) {
-  const [showShortcuts, setShowShortcuts] = React.useState(false)
-
+export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameChange, onHeadersChange, onBodyChange, onQueryParamsChange, onSend, onSave, onGenerateCode, loading }) {
   React.useEffect(() => {
     const handleKeyDown = (e) => {
-      // Ctrl+Enter or Cmd+Enter to send
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault()
         onSend()
       }
-      // Ctrl+S or Cmd+S to save
       if ((e.ctrlKey || e.metaKey) && e.key === "s") {
         e.preventDefault()
         onSave()
@@ -27,6 +24,32 @@ export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameC
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [onSend, onSave])
+
+  const handlePaste = (e) => {
+    const pastedText = e.clipboardData.getData('text')
+
+    if (isCurlCommand(pastedText)) {
+      e.preventDefault()
+
+      const parsed = parseCurlCommand(pastedText)
+      if (parsed) {
+        onMethodChange(parsed.method)
+        onUrlChange(parsed.url)
+
+        if (parsed.headers && onHeadersChange) {
+          onHeadersChange(parsed.headers)
+        }
+
+        if (parsed.body && onBodyChange) {
+          onBodyChange(parsed.body)
+        }
+
+        if (parsed.queryParams && onQueryParamsChange) {
+          onQueryParamsChange(parsed.queryParams)
+        }
+      }
+    }
+  }
 
   return (
     <div className="border-b border-border/50 bg-muted/20 backdrop-blur-sm">
@@ -52,9 +75,10 @@ export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameC
           <Globe className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="https://api.example.com/endpoint"
+            placeholder="https://api.example.com/endpoint (or paste curl command)"
             value={activeRequest.url}
             onChange={(e) => onUrlChange(e.target.value)}
+            onPaste={handlePaste}
             className="pl-9 font-mono text-sm"
           />
         </div>
@@ -113,11 +137,7 @@ export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameC
       </div>
 
       {/* Keyboard shortcuts bar */}
-      <div
-        className="flex items-center justify-between border-t px-4 py-1.5 text-xs text-muted-foreground/70 transition-opacity"
-        onMouseEnter={() => setShowShortcuts(true)}
-        onMouseLeave={() => setShowShortcuts(false)}
-      >
+      <div className="flex items-center justify-between border-t px-4 py-1.5 text-xs text-muted-foreground/70">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1">
             <kbd>Ctrl</kbd>+<kbd>Enter</kbd> Send
