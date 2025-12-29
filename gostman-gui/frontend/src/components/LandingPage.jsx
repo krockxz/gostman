@@ -93,7 +93,7 @@ const DOWNLOAD_OPTIONS = [
     desc: "Linux Binary (64-bit)",
     icon: LinuxIcon,
     href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-linux-amd64.zip",
-    iconColor: "text-amber-400"
+    iconColor: "text-yellow-400"
   },
 ]
 

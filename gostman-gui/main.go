@@ -26,33 +26,14 @@ func main() {
 	})
 
 	EditMenu := appMenu.AddSubmenu("Edit")
-	// Define menu items using a struct for better organization and scalability (DRY/Open-Closed)
-	type menuItem struct {
-		Label   string
-		Command string
-	}
-
-	editItems := []menuItem{
-		{"Undo", "undo"},
-		{"Redo", "redo"},
-		{"Cut", "cut"},
-		{"Copy", "copy"},
-		{"Paste", "paste"},
-		{"Select All", "selectAll"},
-	}
-
-	for _, item := range editItems {
-		// Add separator before Cut
-		if item.Label == "Cut" {
-			EditMenu.AddSeparator()
-		}
-
-		// Capture item for closure
-		cmd := item.Command
-		EditMenu.AddText(item.Label, nil, func(_ *menu.CallbackData) {
-			runtime.WindowExecJS(app.ctx, "document.execCommand('"+cmd+"')")
-		})
-	}
+	// Note: No keyboard shortcuts or callbacks - let the browser handle these natively
+	EditMenu.AddText("Undo", nil, nil)
+	EditMenu.AddText("Redo", nil, nil)
+	EditMenu.AddSeparator()
+	EditMenu.AddText("Cut", nil, nil)
+	EditMenu.AddText("Copy", nil, nil)
+	EditMenu.AddText("Paste", nil, nil)
+	EditMenu.AddText("Select All", nil, nil)
 
 	// Create application with options
 	err := wails.Run(&options.App{

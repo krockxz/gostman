@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { RotateCcw } from "lucide-react"
 import { SendRequest, GetRequests, SaveRequest, DeleteRequest, GetVariables, SaveVariables } from "../wailsjs/go/main/App"
 import { Sidebar } from "./components/Sidebar"
@@ -90,22 +90,18 @@ function App() {
     setActiveTabId(newTab.id)
   }
 
-  const handleNewRequest = useCallback(() => {
-    handleNewTab()
-  }, [])
-
   // Keyboard shortcut for New Request (Ctrl+N)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault()
-        handleNewRequest()
+        handleNewTab()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [handleNewRequest])
+  }, [])
 
   const handleCloseTab = (tabId) => {
     if (tabs.length === 1) return // Always keep at least one tab
@@ -142,9 +138,7 @@ function App() {
     setFolders(prev => prev.map(f => f.id === folderId ? { ...f, isOpen: !f.isOpen } : f))
   }
 
-  const handleNewRequestInFolder = (folderId) => {
-    handleNewTab()
-  }
+
 
   const handleSave = async () => {
     try {
@@ -162,7 +156,7 @@ function App() {
       try {
         await DeleteRequest(id)
         await refreshRequests()
-        handleNewRequest()
+        handleNewTab()
       } catch (e) {
         console.error(e)
       }
@@ -304,7 +298,6 @@ function App() {
           onCreateFolder={handleCreateFolder}
           onDeleteFolder={handleDeleteFolder}
           onToggleFolder={handleToggleFolder}
-          onNewRequestInFolder={handleNewRequestInFolder}
         />
 
         <div className="flex flex-1 flex-col overflow-hidden">
