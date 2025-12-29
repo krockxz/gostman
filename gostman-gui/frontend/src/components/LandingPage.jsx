@@ -10,14 +10,12 @@ import {
   Github,
   ArrowRight,
   Check,
+  X,
   FolderOpen,
   Command,
   Star,
   Braces,
   Shield,
-  Sparkles,
-  Cpu,
-  Gauge,
 } from "lucide-react"
 
 import logo from "../assets/logo.jpg"
@@ -27,37 +25,31 @@ const FEATURES = [
     icon: Zap,
     title: "Lightning Fast",
     description: "Built with Go for instant startup and blazing-fast response times",
-    gradient: "from-yellow-400 to-orange-500",
   },
   {
     icon: Braces,
     title: "JSON Syntax Highlighting",
     description: "Beautifully formatted responses. No more squinting at raw text.",
-    gradient: "from-cyan-400 to-blue-500",
   },
   {
     icon: FolderOpen,
     title: "Collections",
     description: "Organize your requests into collections for easy access",
-    gradient: "from-purple-400 to-pink-500",
   },
   {
     icon: Command,
     title: "Keyboard Shortcuts",
     description: "Cmd + Enter to Send. Designed for speed enthusiasts.",
-    gradient: "from-green-400 to-emerald-500",
   },
   {
     icon: Code,
     title: "Environment Variables",
     description: "Use {{base_url}} in your requests. Switch configs instantly.",
-    gradient: "from-blue-400 to-indigo-500",
   },
   {
     icon: Shield,
     title: "Local & Private",
     description: "All data stays on your machine. No cloud, no tracking",
-    gradient: "from-red-400 to-rose-500",
   },
 ]
 
@@ -144,52 +136,33 @@ export function LandingPage({ onGetStarted }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground overflow-hidden">
-      {/* Animated background grid */}
-      <div className="fixed inset-0 grid-pattern opacity-30 pointer-events-none" />
-
-      {/* Gradient orbs */}
-      <div className="fixed top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none animate-pulse-slow" />
-      <div className="fixed bottom-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-slow-delayed" />
+      {/* Subtle background mesh gradient */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.08),rgba(255,255,255,0))]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_60%_at_80%_50%,rgba(16,185,129,0.05),rgba(255,255,255,0))]" />
+      </div>
 
       <FloatingCode />
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-4 px-6">
-        <div className="max-w-4xl w-full backdrop-blur-xl bg-background/60 border border-border/40 rounded-2xl shadow-2xl shadow-primary/5">
-          <div className="px-6 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src={logo} alt="Gostman Logo" className="h-10 w-10 rounded-lg shadow-lg shadow-primary/25" />
-              <span className="font-semibold text-base">Gostman</span>
+      <nav className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-6">
+        <div className="max-w-5xl w-full backdrop-blur-md bg-background/70 border border-border/50 rounded-xl shadow-sm">
+          <div className="px-5 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <img src={logo} alt="Gostman Logo" className="h-8 w-8 rounded-md" />
+              <span className="font-medium text-sm">Gostman</span>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <a
                 href="https://github.com/krockxz/gostman"
                 target="_blank"
                 rel="noopener noreferrer"
-                className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "gap-2 text-sm")}
+                className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "gap-2 text-sm hover:bg-muted/50")}
               >
-                {stars !== null ? (
-                  <>
-                    <div className="flex items-center gap-1.5 border-r border-border/50 pr-2 mr-2">
-                      <Github className="h-4 w-4" />
-                      <span className="font-semibold">Star</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
-                      <Star className="h-3.5 w-3.5 fill-current" />
-                      <span className="font-mono text-xs">{stars.toLocaleString()}</span>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-1.5 border-r border-border/50 pr-2 mr-2">
-                      <Github className="h-4 w-4" />
-                      <span className="font-semibold">Star</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors">
-                      <Star className="h-3.5 w-3.5 fill-current" />
-                      <span className="font-mono text-xs">--</span>
-                    </div>
-                  </>
+                <Github className="h-4 w-4" />
+                <span className="font-medium">Star</span>
+                {stars !== null && (
+                  <span className="font-mono text-xs text-muted-foreground">{stars.toLocaleString()}</span>
                 )}
               </a>
             </div>
@@ -198,71 +171,67 @@ export function LandingPage({ onGetStarted }) {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-8">
-            <Badge className="mb-4 px-4 py-1.5 text-xs font-mono border-primary/20 bg-primary/10 text-primary glow-subtle">
-              <Sparkles className="h-3 w-3 mr-1.5" />
+      <section className="relative pt-36 pb-24 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center space-y-6">
+            <Badge variant="outline" className="px-3 py-1 text-xs font-medium border-border/60 bg-muted/30">
               Open Source HTTP Client
             </Badge>
 
-            <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1]">
               <span className="block">The HTTP Client</span>
-              <span className="block mt-2">
-                <span className="bg-gradient-to-r from-primary via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                  For the Go Era
-                </span>
+              <span className="block mt-2 text-muted-foreground">
+                For the Go Era
               </span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
               <TypingAnimation text="The Native HTTP Client. 10x lighter than Postman." delay={50} />
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-8">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-6">
               <DownloadDropdown />
-              <Button size="lg" variant="outline" className="gap-3 text-lg px-8 py-6 border-primary/30 hover:bg-primary/10" onClick={onGetStarted}>
-                <Globe className="h-5 w-5" />
+              <Button size="lg" variant="outline" className="gap-2 text-base px-6 py-5.5 border-border/60 hover:bg-muted/50" onClick={onGetStarted}>
+                <Globe className="h-4 w-4" />
                 Try Web Version
-                <ArrowRight className="h-5 w-5" />
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
 
-            <div className="flex items-center justify-center gap-6 pt-8 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center gap-6 pt-6 text-sm text-muted-foreground/80">
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-400" />
+                <Check className="h-3.5 w-3.5" />
                 <span>Free forever</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-400" />
+                <Check className="h-3.5 w-3.5" />
                 <span>No account needed</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-emerald-400" />
+                <Check className="h-3.5 w-3.5" />
                 <span>Open source</span>
               </div>
             </div>
 
-            <div className="pt-8 flex justify-center">
-              <Badge variant="outline" className="gap-2 py-1.5 px-4 bg-background/50 backdrop-blur border-primary/20">
-                <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse"></span>
+            <div className="pt-6 flex justify-center">
+              <Badge variant="outline" className="gap-2 px-3 py-1 text-xs bg-muted/20 border-border/40">
                 Powered by Wails (Go + React)
               </Badge>
             </div>
           </div>
 
           {/* App Preview */}
-          <div className="mt-20 relative" data-animate="hero-preview">
+          <div className="mt-16 relative" data-animate="hero-preview">
             <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10 pointer-events-none" />
-            <Card className="border-border/50 bg-background/50 backdrop-blur-xl shadow-2xl shadow-primary/10 overflow-hidden">
-              <div className="flex items-center gap-2 px-4 py-3 border-b bg-muted/20">
+            <Card className="border-border/60 bg-background/80 backdrop-blur-sm shadow-lg overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 bg-muted/10">
                 <div className="flex gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-400/80" />
-                  <div className="w-3 h-3 rounded-full bg-yellow-400/80" />
-                  <div className="w-3 h-3 rounded-full bg-green-400/80" />
+                  <div className="w-3 h-3 rounded-full bg-red-400/70" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-400/70" />
+                  <div className="w-3 h-3 rounded-full bg-green-400/70" />
                 </div>
                 <div className="flex-1 text-center flex items-center justify-center gap-2">
-                  <span className="text-xs font-mono text-muted-foreground">GET https://api.gostman.io/v1/users</span>
+                  <span className="text-xs font-mono text-muted-foreground/70">GET https://api.gostman.io/v1/users</span>
                 </div>
               </div>
               <div className="aspect-[16/9] bg-background relative overflow-hidden group">
@@ -315,44 +284,38 @@ export function LandingPage({ onGetStarted }) {
       </section>
 
       {/* Features Section */}
-      <section className="relative py-20 px-6" data-animate="features">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 px-4 py-1.5 text-xs font-mono border-primary/20 bg-primary/10 text-primary">
-              <Cpu className="h-3 w-3 mr-1.5" />
-              Features
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Everything You Need,
-              <span className="block mt-2 text-primary">Nothing You Don't</span>
+      <section className="relative py-24 px-6" data-animate="features">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-semibold mb-3">
+              Everything You Need
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-muted-foreground max-w-xl mx-auto">
               Built by developers, for developers. Every feature crafted with care.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {FEATURES.map((feature, index) => (
               <Card
                 key={feature.title}
                 className={cn(
-                  "group relative overflow-hidden border-border/50 bg-gradient-to-br from-background to-muted/10 transition-all duration-300",
-                  "hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 hover:-translate-y-1"
+                  "group border border-border/60 bg-background/40 backdrop-blur-sm transition-all duration-200",
+                  "hover:border-border hover:bg-background/60 hover:shadow-md"
                 )}
                 style={{ animationDelay: `${index * 100}ms` }}
               >
-                <CardContent className="p-6">
+                <CardContent className="p-5">
                   <div className={cn(
-                    "flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br mb-4",
-                    feature.gradient,
-                    "shadow-lg"
+                    "flex h-10 w-10 items-center justify-center rounded-md mb-4",
+                    "bg-muted/20",
+                    "group-hover:bg-muted/30 transition-colors duration-200"
                   )}>
-                    <feature.icon className="h-6 w-6 text-white" />
+                    <feature.icon className="h-5 w-5 text-muted-foreground/60" />
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+                  <h3 className="text-base font-semibold mb-1.5">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground/80 leading-relaxed">{feature.description}</p>
                 </CardContent>
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </Card>
             ))}
           </div>
@@ -360,50 +323,48 @@ export function LandingPage({ onGetStarted }) {
       </section>
 
       {/* Comparison Section */}
-      <section className="relative py-20 px-6" data-animate="comparison">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <Badge className="mb-4 px-4 py-1.5 text-xs font-mono border-primary/20 bg-primary/10 text-primary">
-              <Gauge className="h-3 w-3 mr-1.5" />
-              Comparison
-            </Badge>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+      <section className="relative py-24 px-6" data-animate="comparison">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-semibold mb-3">
               Why Choose Gostman?
             </h2>
-            <p className="text-xl text-muted-foreground">
+            <p className="text-muted-foreground">
               Lightweight, fast, and respects your privacy
             </p>
           </div>
 
-          <Card className="border-border/50 bg-background/50 backdrop-blur">
-            <CardContent className="p-8">
-              <div className="space-y-4">
-                <div className="grid grid-cols-3 gap-4 pb-4 border-b">
-                  <div className="font-semibold">Feature</div>
-                  <div className="text-center font-semibold text-primary">Gostman</div>
-                  <div className="text-center font-semibold text-muted-foreground">Others</div>
+          <Card className="border border-border/60 bg-background/40 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="space-y-1">
+                <div className="grid grid-cols-3 gap-4 pb-3 border-b border-border/40">
+                  <div className="font-medium text-sm">Feature</div>
+                  <div className="text-center font-medium text-sm">Gostman</div>
+                  <div className="text-center font-medium text-sm text-muted-foreground">Others</div>
                 </div>
                 {COMPARISONS.map((item, index) => (
                   <div
                     key={item.feature}
-                    className="grid grid-cols-3 gap-4 py-3 items-center hover:bg-muted/30 rounded-lg px-3 transition-colors"
+                    className="grid grid-cols-3 gap-4 py-3 items-center hover:bg-muted/30 rounded-md px-3 transition-colors"
                   >
                     <div className="text-sm">{item.feature}</div>
                     <div className="text-center">
-                      <span className={cn(
-                        "inline-flex items-center justify-center w-8 h-8 rounded-full",
-                        item.gostman === "✓" ? "bg-emerald-500/20 text-emerald-400" : ""
-                      )}>
-                        {item.gostman}
-                      </span>
+                      {item.gostman === "✓" ? (
+                        <div className="inline-flex items-center justify-center">
+                          <Check className="h-5 w-5 text-emerald-400/70" strokeWidth={2.5} />
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground/60">{item.gostman}</span>
+                      )}
                     </div>
                     <div className="text-center">
-                      <span className={cn(
-                        "inline-flex items-center justify-center w-8 h-8 rounded-full",
-                        item.others === "✓" ? "bg-emerald-500/20 text-emerald-400" : "bg-muted/20 text-muted-foreground"
-                      )}>
-                        {item.others}
-                      </span>
+                      {item.others === "✓" ? (
+                        <div className="inline-flex items-center justify-center">
+                          <Check className="h-5 w-5 text-emerald-400/70" strokeWidth={2.5} />
+                        </div>
+                      ) : (
+                        <X className="h-5 w-5 text-muted-foreground/30" strokeWidth={2} />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -414,25 +375,25 @@ export function LandingPage({ onGetStarted }) {
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/10 py-12 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+      <footer className="border-t border-border/40 bg-muted/10 py-16 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-3">
-              <img src={logo} alt="Gostman Logo" className="h-8 w-8 rounded-lg" />
+              <img src={logo} alt="Gostman Logo" className="h-8 w-8 rounded-md" />
               <div>
-                <span className="font-semibold">Gostman</span>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <span className="font-medium text-sm">Gostman</span>
+                <p className="text-xs text-muted-foreground/70 mt-0.5">
                   A lightweight HTTP client for developers
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-8">
               <a
                 href="https://github.com/krockxz/gostman"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-2"
+                className="text-sm text-muted-foreground/70 hover:text-foreground transition-colors flex items-center gap-2"
               >
                 <Github className="h-4 w-4" />
                 GitHub
@@ -441,15 +402,15 @@ export function LandingPage({ onGetStarted }) {
                 href="https://github.com/krockxz/gostman/issues"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-sm text-muted-foreground/70 hover:text-foreground transition-colors"
               >
                 Report Issue
               </a>
             </div>
           </div>
 
-          <div className="mt-8 pt-8 border-t text-center">
-            <p className="text-sm text-muted-foreground">
+          <div className="mt-12 pt-8 border-t border-border/40 text-center">
+            <p className="text-sm text-muted-foreground/60">
               © 2025 Gostman. Open source, always free.
             </p>
           </div>
