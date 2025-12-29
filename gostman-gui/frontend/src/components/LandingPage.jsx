@@ -22,7 +22,7 @@ import {
   Gauge,
 } from "lucide-react"
 
-import { AppleIcon, WindowsIcon } from "./Icons"
+import { AppleIcon, WindowsIcon, LinuxIcon } from "./Icons"
 import logo from "../assets/logo.jpg"
 
 const FEATURES = [
@@ -87,6 +87,13 @@ const DOWNLOAD_OPTIONS = [
     icon: WindowsIcon,
     href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-windows-amd64.exe",
     iconColor: "text-blue-400"
+  },
+  {
+    os: "Linux",
+    desc: "AppImage (Universal)",
+    icon: LinuxIcon,
+    href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-linux-amd64.zip",
+    iconColor: "text-amber-400"
   },
 ]
 
