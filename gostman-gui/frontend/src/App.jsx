@@ -29,6 +29,12 @@ function App() {
   const [requestHistory, setRequestHistory] = useState([])
   const [folders, setFolders] = useState([])
   const [tabs, setTabs] = useState([{ id: 'tab-1', request: { ...DEFAULT_REQUEST }, status: '', loading: false, responseTime: null }])
+  const [activeTabId, setActiveTabId] = useState('tab-1')
+  const [variables, setVariables] = useState("{}")
+  const [codeDialogOpen, setCodeDialogOpen] = useState(false)
+  const [codeSnippets, setCodeSnippets] = useState(null)
+
+  const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
 
   // -- Data Loading --
 
@@ -45,9 +51,9 @@ function App() {
   }, [])
 
 
-    useEffect(() => {
-      fetchInitialData()
-    }, [fetchInitialData])
+  useEffect(() => {
+    fetchInitialData()
+  }, [fetchInitialData])
 
   const refreshRequests = async () => {
     const reqs = await GetRequests()
