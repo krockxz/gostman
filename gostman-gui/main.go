@@ -26,25 +26,33 @@ func main() {
 	})
 
 	EditMenu := appMenu.AddSubmenu("Edit")
-	EditMenu.AddText("Undo", keys.CmdOrCtrl("z"), func(_ *menu.CallbackData) {
-		runtime.WindowExecJS(app.ctx, "document.execCommand('undo')")
-	})
-	EditMenu.AddText("Redo", keys.CmdOrCtrl("y"), func(_ *menu.CallbackData) {
-		runtime.WindowExecJS(app.ctx, "document.execCommand('redo')")
-	})
-	EditMenu.AddSeparator()
-	EditMenu.AddText("Cut", keys.CmdOrCtrl("x"), func(_ *menu.CallbackData) {
-		runtime.WindowExecJS(app.ctx, "document.execCommand('cut')")
-	})
-	EditMenu.AddText("Copy", keys.CmdOrCtrl("c"), func(_ *menu.CallbackData) {
-		runtime.WindowExecJS(app.ctx, "document.execCommand('copy')")
-	})
-	EditMenu.AddText("Paste", keys.CmdOrCtrl("v"), func(_ *menu.CallbackData) {
-		runtime.WindowExecJS(app.ctx, "document.execCommand('paste')")
-	})
-	EditMenu.AddText("Select All", keys.CmdOrCtrl("a"), func(_ *menu.CallbackData) {
-		runtime.WindowExecJS(app.ctx, "document.execCommand('selectAll')")
-	})
+	// Define menu items using a struct for better organization and scalability (DRY/Open-Closed)
+	type menuItem struct {
+		Label   string
+		Command string
+	}
+
+	editItems := []menuItem{
+		{"Undo", "undo"},
+		{"Redo", "redo"},
+		{"Cut", "cut"},
+		{"Copy", "copy"},
+		{"Paste", "paste"},
+		{"Select All", "selectAll"},
+	}
+
+	for _, item := range editItems {
+		// Add separator before Cut
+		if item.Label == "Cut" {
+			EditMenu.AddSeparator()
+		}
+
+		// Capture item for closure
+		cmd := item.Command
+		EditMenu.AddText(item.Label, nil, func(_ *menu.CallbackData) {
+			runtime.WindowExecJS(app.ctx, "document.execCommand('"+cmd+"')")
+		})
+	}
 
 	// Create application with options
 	err := wails.Run(&options.App{

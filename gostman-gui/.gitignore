@@ -1,3 +1,5 @@
 build/bin
 node_modules
 frontend/dist
+gostman-gui
+frontend/package.json.md5

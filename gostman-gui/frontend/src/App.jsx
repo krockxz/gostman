@@ -8,7 +8,6 @@ import { CodeSnippetDialog } from "./components/CodeSnippetDialog"
 import { Textarea } from "./components/ui/textarea"
 import { TabBar } from "./components/TabBar"
 import { Button } from "./components/ui/button"
-import { ScrollArea } from "./components/ui/scroll-area"
 import { RequestTabs } from "./components/RequestTabs"
 import { generateAllSnippets } from "./lib/codeGenerator"
 
@@ -90,6 +89,23 @@ function App() {
     setActiveTabId(newTab.id)
   }
 
+  const handleNewRequest = useCallback(() => {
+    handleNewTab()
+  }, [])
+
+  // Keyboard shortcut for New Request (Ctrl+N)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault()
+        handleNewRequest()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [handleNewRequest])
+
   const handleCloseTab = (tabId) => {
     if (tabs.length === 1) return // Always keep at least one tab
 
@@ -106,10 +122,6 @@ function App() {
 
   const handleSelectRequest = (req) => {
     updateActiveTab({ request: req, status: '', responseTime: null })
-  }
-
-  const handleNewRequest = () => {
-    handleNewTab()
   }
 
   const handleCreateFolder = () => {
