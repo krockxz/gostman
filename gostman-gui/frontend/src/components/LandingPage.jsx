@@ -22,17 +22,7 @@ import {
   Gauge,
 } from "lucide-react"
 
-const AppleIcon = ({ className }) => (
-  <svg role="img" viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
-    <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
-  </svg>
-)
-
-const WindowsIcon = ({ className }) => (
-  <svg role="img" viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
-    <path d="M0 3.449L9.75 2.1v9.451H0v-8.102zm10.949-1.655L24 0v11.4H10.949V1.794zM0 13.083h9.75v8.102L0 19.689v-6.606zm10.949 0H24v9.64L10.949 20.45v-7.367z" />
-  </svg>
-)
+import { AppleIcon, WindowsIcon } from "./Icons"
 import logo from "../assets/logo.jpg"
 
 const FEATURES = [
@@ -187,26 +177,67 @@ const DownloadDropdown = () => {
 }
 
 export function LandingPage({ onGetStarted }) {
-  const [scrollY, setScrollY] = useState(0)
   const [isVisible, setIsVisible] = useState({})
   const [stars, setStars] = useState(null)
 
   useEffect(() => {
-    fetch("/api/stars")
-      .then((res) => {
-        if (!res.ok) throw new Error("API response not ok")
-        return res.json()
-      })
-      .then((data) => setStars(data.stars))
-      .catch((err) => {
-        console.error("Failed to fetch stars from API:", err)
-      })
+    // Add logic ensuring fetch is only called if mounting
+    // AbortController is a good practice for cleanup
+    const controller = new AbortController();
+
+    const fetchStars = async () => {
+      try {
+        // Try our own secure API first (for Vercel/Prod)
+        const response = await fetch("/api/stars", { signal: controller.signal });
+
+        // If response is HTML (404/500 from Vite) or not ok, throw to trigger fallback
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || (contentType && contentType.includes("text/html"))) {
+          throw new Error("Local/API endpoint unavailable");
+        }
+
+        const data = await response.json();
+        setStars(data.stars);
+      } catch (err) {
+        if (err.name === 'AbortError') return;
+
+        console.log("Falling back to direct GitHub API:", err.message);
+
+        // Fallback to direct GitHub API
+        try {
+          const ghResponse = await fetch("https://api.github.com/repos/krockxz/gostman", {
+            signal: controller.signal
+          });
+          if (!ghResponse.ok) throw new Error("GitHub API failed");
+          const ghData = await ghResponse.json();
+          setStars(ghData.stargazers_count);
+        } catch (ghErr) {
+          if (ghErr.name !== 'AbortError') {
+            console.error("Failed to fetch stars:", ghErr);
+          }
+        }
+      }
+    };
+
+    fetchStars();
+
+    return () => controller.abort()
   }, [])
 
   useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY)
-    window.addEventListener("scroll", handleScroll)
-    return () => window.removeEventListener("scroll", handleScroll)
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible((prev) => ({ ...prev, [entry.target.id]: true }))
+          }
+        })
+      },
+      { threshold: 0.1 }
+    )
+
+    document.querySelectorAll("[data-animate]").forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
   }, [])
 
   useEffect(() => {

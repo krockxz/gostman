@@ -91,18 +91,18 @@ export function Sidebar({
           <div className="flex items-center gap-1">
             <Button
               size="icon"
-              variant="ghost"
+              variant="outline"
               onClick={onCreateFolder}
-              className="h-8 w-8 rounded-lg hover:bg-muted transition-colors"
+              className="h-8 w-8 rounded-lg bg-background/50 hover:bg-accent hover:text-accent-foreground transition-all shadow-sm border-border/50"
               title="New Folder"
             >
               <FolderPlus className="h-4 w-4" />
             </Button>
             <Button
               size="icon"
-              variant="ghost"
+              variant="outline"
               onClick={onNewRequest}
-              className="h-8 w-8 rounded-lg hover:bg-muted transition-colors"
+              className="h-8 w-8 rounded-lg bg-background/50 hover:bg-accent hover:text-accent-foreground transition-all shadow-sm border-border/50"
               title="New request (Ctrl+N)"
             >
               <Plus className="h-4 w-4" />

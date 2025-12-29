@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs"
 import { Textarea } from "./components/ui/textarea"
 import { Button } from "./components/ui/button"
 import { ScrollArea } from "./components/ui/scroll-area"
-import { Braces, Hash, Heading1, FolderOpen, ArrowLeft, RotateCcw } from "lucide-react"
+import { ArrowLeft, RotateCcw } from "lucide-react"
+import { RequestTabs } from "./components/RequestTabs"
 import { CodeSnippetDialog } from "./components/CodeSnippetDialog"
 import { generateAllSnippets } from "./lib/codeGenerator"
 import { parseVariables } from "./lib/variables"
@@ -276,83 +277,14 @@ function WebApp() {
           />
 
           <div className="flex flex-1 flex-col overflow-hidden">
-            <Tabs defaultValue="body" className="flex flex-1 flex-col">
-              <div className="border-b bg-muted/10 px-4 backdrop-blur-sm">
-                <TabsList>
-                  <TabsTrigger value="body" icon={Braces}>Body</TabsTrigger>
-                  <TabsTrigger value="params" icon={Hash}>Params</TabsTrigger>
-                  <TabsTrigger value="headers" icon={Heading1}>Headers</TabsTrigger>
-                  <TabsTrigger value="vars" icon={FolderOpen}>Env Vars</TabsTrigger>
-                </TabsList>
-              </div>
-
-              <div className="flex-1 overflow-hidden">
-                <TabsContent value="body" className="h-full p-0 m-0">
-                  <ScrollArea className="h-full scrollbar-thin">
-                    <div className="p-4">
-                      <Textarea
-                        value={activeRequest.body}
-                        onChange={(e) => updateField('body', e.target.value)}
-                        placeholder='{\n  "key": "value"\n}'
-                        className="min-h-[300px] font-mono text-sm"
-                      />
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="params" className="h-full p-0 m-0">
-                  <ScrollArea className="h-full scrollbar-thin">
-                    <div className="p-4">
-                      <Textarea
-                        value={activeRequest.queryParams}
-                        onChange={(e) => updateField('queryParams', e.target.value)}
-                        placeholder='{\n  "query": "param",\n  "filter": "value"\n}'
-                        className="min-h-[300px] font-mono text-sm"
-                      />
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="headers" className="h-full p-0 m-0">
-                  <ScrollArea className="h-full scrollbar-thin">
-                    <div className="p-4">
-                      <Textarea
-                        value={activeRequest.headers}
-                        onChange={(e) => updateField('headers', e.target.value)}
-                        placeholder='{\n  "Content-Type": "application/json",\n  "Authorization": "Bearer token"\n}'
-                        className="min-h-[300px] font-mono text-sm"
-                      />
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-
-                <TabsContent value="vars" className="h-full p-0 m-0">
-                  <ScrollArea className="h-full scrollbar-thin">
-                    <div className="space-y-4 p-4">
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                          <FolderOpen className="h-4 w-4" />
-                          Environment Variables
-                        </label>
-                        <p className="text-xs text-muted-foreground/60">
-                          Define reusable variables like base URLs, API keys, or common headers.
-                        </p>
-                        <Textarea
-                          value={variables}
-                          onChange={(e) => setVariables(e.target.value)}
-                          placeholder='{\n  "base_url": "https://api.example.com",\n  "api_key": "your-api-key-here"\n}'
-                          className="min-h-[200px] font-mono text-sm"
-                        />
-                      </div>
-                      <Button onClick={handleSaveVars} size="sm" className="gap-2">
-                        <FolderOpen className="h-4 w-4" />
-                        Save Variables
-                      </Button>
-                    </div>
-                  </ScrollArea>
-                </TabsContent>
-              </div>
-            </Tabs>
+            <RequestTabs
+              activeRequest={activeRequest}
+              onUpdateField={updateField}
+              variables={variables}
+              onUpdateVariables={setVariables}
+              onSaveVars={handleSaveVars}
+              EditorComponent={Textarea}
+            />
 
             <ResponsePanel
               response={activeRequest.response}

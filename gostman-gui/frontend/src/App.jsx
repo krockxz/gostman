@@ -4,12 +4,11 @@ import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
 import { ResponsePanel } from "./components/ResponsePanel"
 import { CodeSnippetDialog } from "./components/CodeSnippetDialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs"
 import { MonacoEditor } from "./components/MonacoEditor"
 import { TabBar } from "./components/TabBar"
 import { Button } from "./components/ui/button"
 import { ScrollArea } from "./components/ui/scroll-area"
-import { Braces, Hash, Heading1, FolderOpen } from "lucide-react"
+import { RequestTabs } from "./components/RequestTabs"
 import { generateAllSnippets } from "./lib/codeGenerator"
 
 const DEFAULT_REQUEST = {
@@ -28,13 +27,8 @@ let nextTabId = 1
 function App() {
   const [requests, setRequests] = useState([])
   const [requestHistory, setRequestHistory] = useState([])
+  const [folders, setFolders] = useState([])
   const [tabs, setTabs] = useState([{ id: 'tab-1', request: { ...DEFAULT_REQUEST }, status: '', loading: false, responseTime: null }])
-  const [activeTabId, setActiveTabId] = useState('tab-1')
-  const [variables, setVariables] = useState("{}")
-  const [codeDialogOpen, setCodeDialogOpen] = useState(false)
-  const [codeSnippets, setCodeSnippets] = useState(null)
-
-  const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
 
   // -- Data Loading --
 
@@ -43,14 +37,39 @@ function App() {
       const [reqs, vars] = await Promise.all([GetRequests(), GetVariables()])
       setRequests(reqs || [])
       setVariables(vars || "{}")
+      // Folders currently local-only for desktop until backend support
+      setFolders([])
     } catch (e) {
       console.error("Failed to load data:", e)
     }
   }, [])
 
-  useEffect(() => {
-    fetchInitialData()
-  }, [fetchInitialData])
+    // ...
+
+
+
+    // ...
+
+    < Sidebar
+  requests = { requests }
+  folders = { folders }
+  requestHistory = { requestHistory }
+  activeRequest = { activeTab.request }
+  onSelectRequest = { handleSelectRequest }
+  onSelectHistoryItem = { handleSelectHistoryItem }
+  onDeleteHistoryItem = { handleDeleteHistoryItem }
+  onClearHistory = { handleClearHistory }
+  onNewRequest = { handleNewRequest }
+  onDeleteRequest = { handleDelete }
+  onCreateFolder = { handleCreateFolder }
+  onDeleteFolder = { handleDeleteFolder }
+  onToggleFolder = { handleToggleFolder }
+  onNewRequestInFolder = { handleNewRequestInFolder }
+    />
+
+    useEffect(() => {
+      fetchInitialData()
+    }, [fetchInitialData])
 
   const refreshRequests = async () => {
     const reqs = await GetRequests()
@@ -105,6 +124,27 @@ function App() {
   }
 
   const handleNewRequest = () => {
+    handleNewTab()
+  }
+
+  const handleCreateFolder = () => {
+    const name = prompt("Enter folder name:")
+    if (name) {
+      setFolders([...folders, { id: Date.now().toString(), name, isOpen: true }])
+    }
+  }
+
+  const handleDeleteFolder = (folderId) => {
+    if (confirm("Delete folder? Requests inside will be moved to root.")) {
+      setFolders(prev => prev.filter(f => f.id !== folderId))
+    }
+  }
+
+  const handleToggleFolder = (folderId) => {
+    setFolders(prev => prev.map(f => f.id === folderId ? { ...f, isOpen: !f.isOpen } : f))
+  }
+
+  const handleNewRequestInFolder = (folderId) => {
     handleNewTab()
   }
 
@@ -251,6 +291,10 @@ function App() {
           onClearHistory={handleClearHistory}
           onNewRequest={handleNewRequest}
           onDeleteRequest={handleDelete}
+          onCreateFolder={handleCreateFolder}
+          onDeleteFolder={handleDeleteFolder}
+          onToggleFolder={handleToggleFolder}
+          onNewRequestInFolder={handleNewRequestInFolder}
         />
 
         <div className="flex flex-1 flex-col overflow-hidden">
@@ -278,77 +322,14 @@ function App() {
           />
 
           <div className="flex flex-1 flex-col overflow-hidden">
-            <Tabs defaultValue="body" className="flex flex-1 flex-col">
-              <div className="border-b bg-muted/10 px-4 backdrop-blur-sm">
-                <TabsList>
-                  <TabsTrigger value="body" icon={Braces}>Body</TabsTrigger>
-                  <TabsTrigger value="params" icon={Hash}>Params</TabsTrigger>
-                  <TabsTrigger value="headers" icon={Heading1}>Headers</TabsTrigger>
-                  <TabsTrigger value="vars" icon={FolderOpen}>Env Vars</TabsTrigger>
-                </TabsList>
-              </div>
-
-              <div className="flex-1 overflow-hidden">
-                <TabsContent value="body" className="h-full p-0 m-0">
-                  <MonacoEditor
-                    value={activeTab.request.body}
-                    onChange={(e) => updateField('body', e.target.value)}
-                    language="json"
-                    height="100%"
-                    placeholder='{\n  "key": "value"\n}'
-                  />
-                </TabsContent>
-
-                <TabsContent value="params" className="h-full p-0 m-0">
-                  <MonacoEditor
-                    value={activeTab.request.queryParams}
-                    onChange={(e) => updateField('queryParams', e.target.value)}
-                    language="json"
-                    height="100%"
-                    placeholder='{\n  "query": "param"\n}'
-                  />
-                </TabsContent>
-
-                <TabsContent value="headers" className="h-full p-0 m-0">
-                  <MonacoEditor
-                    value={activeTab.request.headers}
-                    onChange={(e) => updateField('headers', e.target.value)}
-                    language="json"
-                    height="100%"
-                    placeholder='{\n  "Content-Type": "application/json"\n}'
-                  />
-                </TabsContent>
-
-                <TabsContent value="vars" className="h-full p-0 m-0">
-                  <div className="flex h-full flex-col">
-                    <div className="flex-1">
-                      <MonacoEditor
-                        value={variables}
-                        onChange={(e) => setVariables(e.target.value)}
-                        language="json"
-                        height="100%"
-                        placeholder='{\n  "base_url": "https://api.example.com"\n}'
-                      />
-                    </div>
-                    <div className="border-t bg-muted/10 p-4">
-                      <div className="mb-3">
-                        <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                          <FolderOpen className="h-4 w-4" />
-                          Environment Variables
-                        </label>
-                        <p className="mt-1 text-xs text-muted-foreground/60">
-                          Define reusable variables with double curly braces syntax.
-                        </p>
-                      </div>
-                      <Button onClick={handleSaveVars} size="sm" className="gap-2">
-                        <FolderOpen className="h-4 w-4" />
-                        Save Variables
-                      </Button>
-                    </div>
-                  </div>
-                </TabsContent>
-              </div>
-            </Tabs>
+            <RequestTabs
+              activeRequest={activeTab.request}
+              onUpdateField={updateField}
+              variables={variables}
+              onUpdateVariables={setVariables}
+              onSaveVars={handleSaveVars}
+              EditorComponent={MonacoEditor}
+            />
 
             <ResponsePanel
               response={activeTab.request.response}
