@@ -74,36 +74,24 @@ jobs:
           fi
         shell: bash
 
-      # Package for Linux (AppImage)
-      - name: Package Linux AppImage
+      # Package for Linux (Zip)
+      - name: Package Linux
         if: matrix.os == 'ubuntu-latest'
         working-directory: ./gostman-gui
         run: |
-          # Download appimagetool
-          wget -q --show-progress https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-
-          # Extract the squashfs filesystem directly (bypasses AppImage execution)
-          # Find offset of squashfs image
-          offset=$(awk 'BEGIN{FS=NULL} /^hsqs/{print NR; exit}' appimagetool-x86_64.AppImage)
-          dd if=appimagetool-x86_64.AppImage of=appimagetool.squashfs bs=1 skip=$offset 2>/dev/null
-
-          # Extract squashfs contents
-          unsquashfs -f -d appimagetool appimagetool.squashfs
-
-          # Create AppDir structure
-          mkdir -p AppDir/usr/bin
-          mkdir -p AppDir/usr/share/applications
-          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          # Create a directory for the package
+          mkdir -p package/usr/bin
+          mkdir -p package/usr/share/applications
+          mkdir -p package/usr/share/icons/hicolor/256x256/apps
 
           # Copy binary
-          cp build/bin/gostman-gui AppDir/usr/bin/
+          cp build/bin/gostman-gui package/usr/bin/
 
           # Copy icon
-          cp build/appicon.png AppDir/usr/share/icons/hicolor/256x256/apps/gostman.png
-          cp build/appicon.png AppDir/gostman.png
+          cp build/appicon.png package/usr/share/icons/hicolor/256x256/apps/gostman.png
 
           # Create desktop file
-          cat > AppDir/usr/share/applications/gostman.desktop << EOF
+          cat > package/usr/share/applications/gostman.desktop << EOF
           [Desktop Entry]
           Name=Gostman
           Exec=gostman-gui
@@ -112,13 +100,9 @@ jobs:
           Categories=Development;Utility;
           EOF
 
-          cp AppDir/usr/share/applications/gostman.desktop AppDir/gostman.desktop
-
-          # Build AppImage using extracted appimagetool
-          ARCH=x86_64 appimagetool/AppRun AppDir Gostman-linux-amd64.AppImage
-
-          # Move to build/bin for consistency
-          mv Gostman-linux-amd64.AppImage build/bin/
+          # Zip the package
+          cd package
+          zip -r ../build/bin/Gostman-linux-amd64.zip .
           
           # Create a zip for consistency with other platforms
           cd build/bin
