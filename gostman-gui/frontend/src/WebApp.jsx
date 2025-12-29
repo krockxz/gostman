@@ -16,6 +16,7 @@ import { prepareRequest, processResponse } from "./lib/requestUtils"
 import { sendProxyRequest } from "./lib/api"
 import { DEFAULT_REQUEST, mockRequests, mockFolders } from "./lib/mockData"
 import { loadState, saveState, resetState, KEYS } from "./lib/storage"
+import logo from "./assets/logo.jpg"
 
 function WebApp() {
   const [showLanding, setShowLanding] = useState(true)
@@ -214,9 +215,7 @@ function WebApp() {
       {/* Header */}
       <header className="flex items-center justify-between border-b bg-muted/10 backdrop-blur-md px-6 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-cyan-500 text-primary-foreground font-bold shadow-lg shadow-primary/25">
-            <span className="text-lg">G</span>
-          </div>
+          <img src={logo} alt="Gostman Logo" className="h-9 w-9 rounded-lg shadow-lg shadow-primary/25" />
           <div>
             <h1 className="text-base font-brand font-bold tracking-tight">Gostman</h1>
             <p className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">HTTP Client</p>
