@@ -19,6 +19,11 @@ jobs:
       matrix:
         include:
 
+          - name: Linux
+            os: ubuntu-latest
+            build-name: Gostman-linux-amd64
+            build-path: gostman-gui/build/bin
+
           - name: Windows
             os: windows-latest
             build-name: Gostman-windows-amd64
@@ -175,6 +180,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
+            ./artifacts/Gostman-linux-amd64/Gostman-linux-amd64.zip
             ./artifacts/Gostman-windows-amd64/Gostman-windows-amd64.exe
             ./artifacts/Gostman-darwin-universal/Gostman-darwin-universal.zip
           draft: false
