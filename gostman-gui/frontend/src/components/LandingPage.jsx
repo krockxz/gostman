@@ -356,21 +356,17 @@ export function LandingPage({ onGetStarted }) {
                     key={item.feature}
                     className="grid grid-cols-3 gap-4 py-3 items-center hover:bg-muted/30 rounded-md px-3 transition-colors"
                   >
-                    <div className="text-sm">{item.feature}</div>
-                    <div className="text-center">
+                    <div className="text-sm flex items-center">{item.feature}</div>
+                    <div className="flex items-center justify-center">
                       {item.gostman === "✓" ? (
-                        <div className="inline-flex items-center justify-center">
-                          <Check className="h-5 w-5 text-emerald-400/70" strokeWidth={2.5} />
-                        </div>
+                        <Check className="h-5 w-5 text-emerald-400/70" strokeWidth={2.5} />
                       ) : (
                         <span className="text-muted-foreground/60">{item.gostman}</span>
                       )}
                     </div>
-                    <div className="text-center">
+                    <div className="flex items-center justify-center">
                       {item.others === "✓" ? (
-                        <div className="inline-flex items-center justify-center">
-                          <Check className="h-5 w-5 text-emerald-400/70" strokeWidth={2.5} />
-                        </div>
+                        <Check className="h-5 w-5 text-emerald-400/70" strokeWidth={2.5} />
                       ) : (
                         <X className="h-5 w-5 text-muted-foreground/30" strokeWidth={2} />
                       )}

@@ -18,14 +18,14 @@ const DOWNLOAD_OPTIONS = [
         desc: "64-bit Installer",
         icon: WindowsIcon,
         href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-windows-amd64.exe",
-        iconColor: "text-blue-400"
+        iconColor: "text-foreground/90"
     },
     {
         os: "Linux",
         desc: "Linux Binary (64-bit)",
         icon: LinuxIcon,
         href: "https://github.com/krockxz/gostman/releases/latest/download/Gostman-linux-amd64.zip",
-        iconColor: "text-yellow-400"
+        iconColor: "text-foreground/90"
     },
 ]
 
