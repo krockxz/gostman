@@ -13,10 +13,13 @@ import SwaggerParser from 'swagger-parser'
 import YAML from 'js-yaml'
 
 /**
- * Simple UUID generator (fallback)
+ * Simple UUID generator (using crypto.randomUUID if available, else fallback)
  * @returns {string} A unique ID string
  */
 function generateId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = Math.random() * 16 | 0
     const v = c === 'x' ? r : (r & 0x3 | 0x8)
@@ -840,7 +843,7 @@ export function detectImportFormat(jsonString) {
     const data = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString
 
     // Postman collection
-    if (data.info?.schema?.includes('postman.com/json/collection')) {
+    if (data.info?.schema?.includes('postman.com/json/collection') || data.info?._postman_id) {
       return 'postman'
     }
 
@@ -850,7 +853,7 @@ export function detectImportFormat(jsonString) {
     }
 
     // Gostman
-    if (data.gostman || (data.version && data.requests)) {
+    if (data.gostman || (data.version && data.gostman)) {
       return 'gostman'
     }
 

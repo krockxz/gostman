@@ -5,6 +5,7 @@ import { Badge } from "./ui/badge"
 import { Textarea } from "./ui/textarea"
 import { parse, visit, buildSchema, Kind } from 'graphql'
 import { request } from 'graphql-request'
+import { GRAPHQL_EXAMPLES } from "../lib/graphqlConstants"
 
 /**
  * GraphQL Query/Mutation Builder
@@ -12,49 +13,6 @@ import { request } from 'graphql-request'
  *
  * Uses graphql and graphql-request libraries for robust handling
  */
-
-const GRAPHQL_EXAMPLES = {
-  query: `# GraphQL Query
-query GetUser($userId: ID!) {
-  user(id: $userId) {
-    id
-    name
-    email
-    posts {
-      id
-      title
-    }
-  }
-}`,
-  mutation: `# GraphQL Mutation
-mutation CreateUser($input: CreateUserInput!) {
-  createUser(input: $input) {
-    id
-    name
-    email
-  }
-}`,
-  subscription: `# GraphQL Subscription
-subscription OnMessageReceived($chatId: ID!) {
-  messageReceived(chatId: $chatId) {
-    id
-    content
-    sender {
-      id
-      name
-    }
-    timestamp
-  }
-}`,
-  variables: `# Query Variables
-{
-  "userId": "1",
-  "input": {
-    "name": "John Doe",
-    "email": "john@example.com"
-  }
-}`
-}
 
 /**
  * Validates a GraphQL query string
@@ -140,8 +98,8 @@ export function extractVariables(query) {
 }
 
 export function GraphQLPanel({
-  query,
-  variables,
+  query = '',
+  variables = '',
   onQueryChange,
   onVariablesChange,
   onExecute
@@ -313,9 +271,8 @@ export function GraphQLPanel({
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={GRAPHQL_EXAMPLES.query}
-            className={`w-full h-full font-mono text-sm resize-none ${
-              !validation.valid ? 'border-destructive/50' : ''
-            } bg-background border-border/50`}
+            className={`w-full h-full font-mono text-sm resize-none ${!validation.valid ? 'border-destructive/50' : ''
+              } bg-background border-border/50`}
             spellCheck={false}
           />
         </div>
@@ -340,9 +297,8 @@ export function GraphQLPanel({
               value={variables}
               onChange={(e) => onVariablesChange(e.target.value)}
               placeholder={GRAPHQL_EXAMPLES.variables}
-              className={`w-full h-24 font-mono text-sm resize-none ${
-                !varValidation.valid ? 'border-destructive/50' : ''
-              } bg-background border-border/50`}
+              className={`w-full h-24 font-mono text-sm resize-none ${!varValidation.valid ? 'border-destructive/50' : ''
+                } bg-background border-border/50`}
               spellCheck={false}
             />
             {!varValidation.valid && (
