@@ -1,11 +1,12 @@
-import React from "react"
+import React, { lazy, Suspense } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { ScrollArea } from "./ui/scroll-area"
 import { Button } from "./ui/button"
 import { Braces, Hash, Heading1, FolderOpen, FlaskConical, Zap, Radio } from "lucide-react"
 import { TestScriptsPanel } from "./TestScriptsPanel"
-import { GraphQLPanel, formatGraphQLRequest } from "./GraphQLPanel"
-import { WebSocketPanel } from "./WebSocketPanel"
+// Lazy load panels
+const GraphQLPanel = lazy(() => import("./GraphQLPanel").then(module => ({ default: module.GraphQLPanel })))
+const WebSocketPanel = lazy(() => import("./WebSocketPanel").then(module => ({ default: module.WebSocketPanel })))
 
 export function RequestTabs({
     activeRequest,
@@ -48,20 +49,24 @@ export function RequestTabs({
                 </TabsContent>
 
                 <TabsContent value="graphql" className="h-full p-0 m-0">
-                    <GraphQLPanel
-                        query={activeRequest.graphqlQuery || activeRequest.body || ''}
-                        variables={activeRequest.graphqlVariables || '{}'}
-                        onQueryChange={(val) => onUpdateField('graphqlQuery', val)}
-                        onVariablesChange={(val) => onUpdateField('graphqlVariables', val)}
-                    />
+                    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Loading GraphQL Module...</div>}>
+                        <GraphQLPanel
+                            query={activeRequest.graphqlQuery || activeRequest.body || ''}
+                            variables={activeRequest.graphqlVariables || '{}'}
+                            onQueryChange={(val) => onUpdateField('graphqlQuery', val)}
+                            onVariablesChange={(val) => onUpdateField('graphqlVariables', val)}
+                        />
+                    </Suspense>
                 </TabsContent>
 
                 <TabsContent value="websocket" className="h-full p-0 m-0">
-                    <WebSocketPanel
-                        url={activeRequest.wsUrl || activeRequest.url || ''}
-                        onUrlChange={(val) => onUpdateField('wsUrl', val)}
-                        headers={activeRequest.headers || '{}'}
-                    />
+                    <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Loading WebSocket Module...</div>}>
+                        <WebSocketPanel
+                            url={activeRequest.wsUrl || activeRequest.url || ''}
+                            onUrlChange={(val) => onUpdateField('wsUrl', val)}
+                            headers={activeRequest.headers || '{}'}
+                        />
+                    </Suspense>
                 </TabsContent>
 
                 <TabsContent value="params" className="h-full p-0 m-0">
@@ -115,11 +120,6 @@ export function RequestTabs({
            */}
                     <div className="flex h-full flex-col">
                         <div className="flex-1 overflow-hidden relative">
-                            {/* For Textarea re-sizing we might want ScrollArea, for Monaco we don't. 
-                    If we use ScrollArea for Monaco it might break scroll.
-                    We can assume EditorComponent handles content structure (height=100%).
-                    If Textarea, clear overflow-auto on parent?
-                */}
                             <EditorComponent
                                 value={variables}
                                 onChange={(e) => onUpdateVariables(e.target.value)}

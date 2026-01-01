@@ -1,17 +1,17 @@
-import { useEffect, useCallback } from 'react'
-import { RotateCcw, Import } from "lucide-react"
+import { useEffect, useCallback, lazy, Suspense } from 'react'
+import { RotateCcw, Import, Loader2 } from "lucide-react"
 import { SendRequest, GetRequests, SaveRequest, DeleteRequest, GetVariables, SaveVariables } from "../wailsjs/go/main/App"
 import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
 import { ResponsePanel } from "./components/ResponsePanel"
-import { CodeSnippetDialog } from "./components/CodeSnippetDialog"
-import { ImportExportDialog } from "./components/ImportExportDialog"
+// Lazy load heavy dialogs
+const CodeSnippetDialog = lazy(() => import("./components/CodeSnippetDialog").then(module => ({ default: module.CodeSnippetDialog })))
+const ImportExportDialog = lazy(() => import("./components/ImportExportDialog").then(module => ({ default: module.ImportExportDialog })))
 import { Textarea } from "./components/ui/textarea"
 import { TabBar } from "./components/TabBar"
 import { Button } from "./components/ui/button"
 import { RequestTabs } from "./components/RequestTabs"
 import { generateAllSnippets } from "./lib/codeGenerator"
-import { importGostman } from "./lib/importExport"
 import { useAppStore, useActiveTab } from "./store/appStore"
 import { parseJSON } from "./lib/dataUtils"
 import logo from "./assets/logo.jpg"
@@ -96,10 +96,6 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [newTab])
 
-  const handleSelectRequest = (req) => {
-    loadRequestIntoTab(req)
-  }
-
   const handleCreateFolder = () => {
     const name = prompt("Enter folder name:")
     if (name) {
@@ -113,9 +109,7 @@ function App() {
     }
   }
 
-  const handleToggleFolder = (folderId) => {
-    toggleFolder(folderId)
-  }
+
 
   const handleSave = async () => {
     try {
@@ -175,10 +169,6 @@ function App() {
     }
   }
 
-  const handleSelectHistoryItem = (historyItem) => {
-    loadHistoryIntoTab(historyItem)
-  }
-
   const handleClearHistory = () => {
     if (confirm("Are you sure you want to clear all history?")) {
       clearHistory()
@@ -228,9 +218,7 @@ function App() {
     }
   }
 
-  const handleNewRequest = () => {
-    newTab()
-  }
+
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -277,15 +265,15 @@ function App() {
           requests={requests}
           requestHistory={requestHistory}
           activeRequest={activeRequest}
-          onSelectRequest={handleSelectRequest}
-          onSelectHistoryItem={handleSelectHistoryItem}
+          onSelectRequest={loadRequestIntoTab}
+          onSelectHistoryItem={loadHistoryIntoTab}
           onDeleteHistoryItem={deleteHistoryItem}
           onClearHistory={handleClearHistory}
-          onNewRequest={handleNewRequest}
+          onNewRequest={newTab}
           onDeleteRequest={handleDelete}
           onCreateFolder={handleCreateFolder}
           onDeleteFolder={handleDeleteFolder}
-          onToggleFolder={handleToggleFolder}
+          onToggleFolder={toggleFolder}
           onNewRequestInFolder={newTab}
         />
 
@@ -336,23 +324,27 @@ function App() {
       </div>
 
       {/* Code Snippet Dialog */}
-      {codeDialogOpen && codeSnippets && (
-        <CodeSnippetDialog
-          snippets={codeSnippets}
-          onClose={closeCodeDialog}
-        />
-      )}
+      <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+        {codeDialogOpen && codeSnippets && (
+          <CodeSnippetDialog
+            snippets={codeSnippets}
+            onClose={closeCodeDialog}
+          />
+        )}
+      </Suspense>
 
       {/* Import/Export Dialog */}
-      {importDialogOpen && (
-        <ImportExportDialog
-          requests={requests}
-          folders={folders}
-          variables={parseJSON(variables, {})}
-          onImport={handleImport}
-          onClose={closeImportDialog}
-        />
-      )}
+      <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+        {importDialogOpen && (
+          <ImportExportDialog
+            requests={requests}
+            folders={folders}
+            variables={parseJSON(variables, {})}
+            onImport={handleImport}
+            onClose={closeImportDialog}
+          />
+        )}
+      </Suspense>
     </div>
   )
 }

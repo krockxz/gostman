@@ -1,14 +1,15 @@
-import { useEffect } from "react"
+import { useEffect, lazy, Suspense } from "react"
 import { LandingPage } from "./components/LandingPage"
 import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
 import { ResponsePanel } from "./components/ResponsePanel"
 import { Textarea } from "./components/ui/textarea"
 import { Button } from "./components/ui/button"
-import { ArrowLeft, RotateCcw, Import } from "lucide-react"
+import { ArrowLeft, RotateCcw, Import, Loader2 } from "lucide-react"
 import { RequestTabs } from "./components/RequestTabs"
-import { CodeSnippetDialog } from "./components/CodeSnippetDialog"
-import { ImportExportDialog } from "./components/ImportExportDialog"
+// Lazy load heavy dialogs
+const CodeSnippetDialog = lazy(() => import("./components/CodeSnippetDialog").then(module => ({ default: module.CodeSnippetDialog })))
+const ImportExportDialog = lazy(() => import("./components/ImportExportDialog").then(module => ({ default: module.ImportExportDialog })))
 import { generateAllSnippets } from "./lib/codeGenerator"
 import { parseVariables } from "./lib/variables"
 import { prepareRequest, processResponse } from "./lib/requestUtils"
@@ -325,22 +326,26 @@ function WebApp() {
           </div>
         </div>
 
-        {codeDialogOpen && codeSnippets && (
-          <CodeSnippetDialog
-            snippets={codeSnippets}
-            onClose={closeCodeDialog}
-          />
-        )}
+        <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+          {codeDialogOpen && codeSnippets && (
+            <CodeSnippetDialog
+              snippets={codeSnippets}
+              onClose={closeCodeDialog}
+            />
+          )}
+        </Suspense>
 
-        {importDialogOpen && (
-          <ImportExportDialog
-            requests={requests}
-            folders={folders}
-            variables={parseJSON(variables, {})}
-            onImport={handleImport}
-            onClose={closeImportDialog}
-          />
-        )}
+        <Suspense fallback={<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+          {importDialogOpen && (
+            <ImportExportDialog
+              requests={requests}
+              folders={folders}
+              variables={parseJSON(variables, {})}
+              onImport={handleImport}
+              onClose={closeImportDialog}
+            />
+          )}
+        </Suspense>
       </div>
     </div>
   )
