@@ -3,10 +3,10 @@
 <div align="center">
   <img src="gostman-gui/frontend/src/assets/logo.jpg" alt="Gostman Logo" width="120" height="120" style="border-radius: 20px; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);">
   
-  <h1 style="margin-top: 20px;">The HTTP Client For the Go Era</h1>
+  <h1 style="margin-top: 20px;">Modern API Client for GraphQL, REST & WebSocket</h1>
   
   <p style="font-size: 1.2em; color: #666;">
-    The Native HTTP Client. 10x lighter than Postman.
+    Native, Privacy-First, and 10x Lighter than Postman.
   </p>
 
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -20,19 +20,19 @@
 
 ## Overview
 
-Gostman is a modern, cross-platform HTTP client built with **Wails** (Go + React). It combines the performance of a native Go backend with the beautiful, reactive UI of modern web technologies.
-
-Why use generic, bloated tools when you can use a client designed for speed and simplicity?
+Gostman is a modern, cross-platform API client built with **Wails** (Go + React). It combines the performance of a native Go backend with the beautiful, reactive UI of modern web technologies. Designed for developers who value speed, privacy, and simplicity without compromising on power.
 
 ## Features
 
+- 🚀 **Multi-Protocol Support**: Native support for **REST**, **GraphQL**, and **WebSockets**.
+- ⛓️ **Request Chaining**: Use response data as variables in subsequent requests for complex workflows.
+- 📜 **Test Scripts**: Automate assertions and tests with a built-in JavaScript/Chai-powered runtime.
 - ⚡ **Lightning Fast**: Built with Go for instant startup and blazing-fast response times.
 - 🎨 **Beautiful UI**: Modern glassmorphic design with smooth animations and dark mode.
+- 🔄 **Import/Export**: Effortlessly migrate with support for **Postman collections** and OpenAPI specs.
 - 🔒 **Local & Private**: All data stays on your machine. No cloud sync, no tracking, no accounts.
-- 📂 **Collections**: Organize your requests into collections for easy access.
-- 🔄 **Environment Variables**: Manage multiple environments (Dev, Staging, Prod) with dynamic variable support.
-- ⌨️ **Keyboard Shortcuts**: Power user shortcuts for rapid API testing workflows.
-- 🖥️ **Cross-Platform**: Native executables for macOS, Windows, and Linux.
+- 📂 **Collections & Environments**: Organize requests and manage Dev/Staging/Prod variables with ease.
+- ⌨️ **Power User UX**: Native keyboard shortcuts and intuitive workflow.
 
 ## Installation
 
@@ -66,6 +66,32 @@ wails build
 ```
 
 Run the binary from `build/bin/`.
+
+## Why Gostman?
+
+| Feature | Gostman | Postman | Insomnia |
+|---------|---------|---------|----------|
+| **Launch Speed** | < 1s | 10-20s | 5-10s |
+| **Privacy** | 🔒 100% Local | ☁️ Cloud Sync | ☁️ Cloud Sync |
+| **Memory Usage**| ~100MB | ~1GB+ | ~500MB+ |
+| **GraphQL/WS** | ✅ Native | ✅ Native | ✅ Native |
+| **Data Ownership**| You own it | Vendor lock-in | Vendor lock-in |
+
+## Technical Details
+
+### Multi-Protocol Power
+Gostman isn't just for REST. Test **GraphQL** APIs with full schema awareness and **WebSockets** for real-time app testing, all within the same interface.
+
+### Test Automation
+Write tests in JavaScript using a familiar syntax. Assert response statuses, JSON body properties, and headers.
+```javascript
+gostman.test("Status code is 200", () => {
+    gostman.response.to.have.status(200);
+});
+```
+
+### Zero-Friction Migration
+Don't get stuck. Import your existing **Postman Collections** (v2.1) and Environment files instantly. Export your Gostman collections anytime in standard formats.
 
 ## Development
 

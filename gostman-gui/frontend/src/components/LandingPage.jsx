@@ -16,48 +16,53 @@ import {
   Star,
   Braces,
   Shield,
+  Network,
+  Workflow,
+  TestTube,
+  Import,
 } from "lucide-react"
 
 import logo from "../assets/logo.jpg"
 
 const FEATURES = [
   {
+    icon: Network,
+    title: "Multi-Protocol",
+    description: "Native support for REST, GraphQL, and WebSockets. One tool for everything.",
+  },
+  {
+    icon: Workflow,
+    title: "Request Chaining",
+    description: "Extract data from responses and use it in subsequent requests comfortably.",
+  },
+  {
+    icon: TestTube,
+    title: "Test Automation",
+    description: "Write JavaScript tests to verify your API responses automatically.",
+  },
+  {
+    icon: Import,
+    title: "Easy Migration",
+    description: "Import your Postman collections instantly. No lock-in, ever.",
+  },
+  {
     icon: Zap,
     title: "Lightning Fast",
-    description: "Built with Go for instant startup and blazing-fast response times",
-  },
-  {
-    icon: Braces,
-    title: "JSON Syntax Highlighting",
-    description: "Beautifully formatted responses. No more squinting at raw text.",
-  },
-  {
-    icon: FolderOpen,
-    title: "Collections",
-    description: "Organize your requests into collections for easy access",
-  },
-  {
-    icon: Command,
-    title: "Keyboard Shortcuts",
-    description: "Cmd + Enter to Send. Designed for speed enthusiasts.",
-  },
-  {
-    icon: Code,
-    title: "Environment Variables",
-    description: "Use {{base_url}} in your requests. Switch configs instantly.",
+    description: "Built with Go for instant startup and blazing-fast response times.",
   },
   {
     icon: Shield,
     title: "Local & Private",
-    description: "All data stays on your machine. No cloud, no tracking",
+    description: "All data stays on your machine. No cloud sync, no tracking, no accounts.",
   },
 ]
 
 const COMPARISONS = [
   { feature: "Built with Go", gostman: "✓", others: "✗" },
+  { feature: "GraphQL & WebSocket", gostman: "✓", others: "✓" },
+  { feature: "Request Chaining", gostman: "✓", others: "✓" },
   { feature: "Offline First", gostman: "✓", others: "✗" },
   { feature: "No Account Required", gostman: "✓", others: "✗" },
-  { feature: "Open Source", gostman: "✓", others: "✓" },
   { feature: "Lightweight (<50MB)", gostman: "✓", others: "✗" },
   { feature: "Local Data Only", gostman: "✓", others: "✗" },
 ]
