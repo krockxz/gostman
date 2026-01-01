@@ -35,7 +35,6 @@ import {
 import { RestShowcase, GraphQLShowcase, ChainingShowcase, WebSocketShowcase } from "./landing/showcases"
 
 // Existing components
-import { TypingAnimation } from "./landing/TypingAnimation"
 import { FloatingCode } from "./landing/FloatingCode"
 import { DownloadDropdown } from "./landing/DownloadDropdown"
 
@@ -352,12 +351,20 @@ export function LandingPage({ onGetStarted }) {
             </motion.h1>
 
             <motion.p
-              className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5 }}
+              className="text-lg md:text-xl text-muted-foreground/90 max-w-2xl mx-auto leading-relaxed"
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.7, ease: [0.25, 0.4, 0.25, 1] }}
             >
-              <TypingAnimation text="The Native HTTP Client. 10x lighter than Postman." delay={50} />
+              The Native HTTP Client.{" "}
+              <motion.span
+                className="text-primary font-medium"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8, duration: 0.6, ease: [0.25, 0.4, 0.25, 1] }}
+              >
+                10x lighter than Postman.
+              </motion.span>
             </motion.p>
 
             <motion.div
