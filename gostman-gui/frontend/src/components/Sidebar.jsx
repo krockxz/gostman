@@ -1,12 +1,12 @@
-import React from "react"
+import React, { memo } from "react"
 import { Plus, Trash2, FileJson, Search, Clock, RotateCcw, Sparkles, Zap, Folder, FolderOpen, ChevronRight, ChevronDown, FolderPlus } from "lucide-react"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Input } from "./ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { cn } from "../lib/utils"
+import { METHOD_VARIANTS } from "../lib/constants"
 
-// ... formatRelativeTime ...
 function formatRelativeTime(isoString) {
   const date = new Date(isoString)
   const now = new Date()
@@ -22,9 +22,7 @@ function formatRelativeTime(isoString) {
   return date.toLocaleDateString()
 }
 
-import { METHOD_VARIANTS } from "../lib/constants"
-
-const EmptyState = ({ icon: Icon, title, description, color = "primary" }) => (
+const EmptyState = memo(({ icon: Icon, title, description, color = "primary" }) => (
   <div className="flex h-full flex-col items-center justify-center p-8 text-center">
     <div className="mb-4 relative">
       <div className={`absolute inset-0 bg-${color}/10 rounded-full blur-xl scale-150 ${color === 'blue-500' ? 'animate-pulse' : ''}`} />
@@ -35,7 +33,7 @@ const EmptyState = ({ icon: Icon, title, description, color = "primary" }) => (
     <p className="text-sm font-medium text-foreground mb-1">{title}</p>
     <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
   </div>
-)
+))
 
 export function Sidebar({
   requests = [],
@@ -207,12 +205,9 @@ export function Sidebar({
               </div>
             )}
           </div>
-          {/* Footer logic remains... */}
         </TabsContent>
-        {/* History Tab remains... */}
         {hasHistoryFeatures && (
           <TabsContent value="history" className="flex flex-1 flex-col overflow-hidden p-0 m-0">
-            {/* ... history implementation ... */}
             <div className="border-b border-border/50 px-3 py-2.5 bg-muted/20">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -305,7 +300,7 @@ export function Sidebar({
   )
 }
 
-function RequestItem({ req, activeRequest, onSelectRequest, onDeleteRequest }) {
+const RequestItem = memo(function RequestItem({ req, activeRequest, onSelectRequest, onDeleteRequest }) {
   return (
     <div
       className={cn(
@@ -352,4 +347,4 @@ function RequestItem({ req, activeRequest, onSelectRequest, onDeleteRequest }) {
       )}
     </div>
   )
-}
+})

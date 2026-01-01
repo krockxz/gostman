@@ -1,7 +1,9 @@
+import { memo } from 'react'
 import { X, Plus } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { cn } from '../lib/utils'
 
-export function TabBar({ tabs, activeTabId, onTabSelect, onTabClose, onNewTab }) {
+export const TabBar = memo(function TabBar({ tabs, activeTabId, onTabSelect, onTabClose, onNewTab }) {
     const getMethodColor = (method) => {
         const colors = {
             GET: 'text-blue-400',
@@ -17,8 +19,9 @@ export function TabBar({ tabs, activeTabId, onTabSelect, onTabClose, onNewTab })
     return (
         <div className="flex items-center gap-1 border-b bg-muted/5 px-2 py-1 overflow-x-auto scrollbar-thin">
             {tabs.map((tab) => (
-                <div
+                <motion.div
                     key={tab.id}
+                    layout
                     className={cn(
                         'group flex items-center gap-2 rounded-t px-3 py-1.5 text-sm cursor-pointer transition-colors min-w-[120px] max-w-[180px]',
                         activeTabId === tab.id
@@ -26,6 +29,7 @@ export function TabBar({ tabs, activeTabId, onTabSelect, onTabClose, onNewTab })
                             : 'hover:bg-muted/50 text-muted-foreground'
                     )}
                     onClick={() => onTabSelect(tab.id)}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 >
                     <span className={cn('text-xs font-mono font-semibold', getMethodColor(tab.request.method))}>
                         {tab.request.method}
@@ -45,7 +49,7 @@ export function TabBar({ tabs, activeTabId, onTabSelect, onTabClose, onNewTab })
                     >
                         <X className="h-3 w-3" />
                     </button>
-                </div>
+                </motion.div>
             ))}
 
             <button
@@ -57,4 +61,4 @@ export function TabBar({ tabs, activeTabId, onTabSelect, onTabClose, onNewTab })
             </button>
         </div>
     )
-}
+})

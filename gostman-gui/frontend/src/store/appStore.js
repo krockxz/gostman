@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { devtools } from 'zustand/middleware'
+import { devtools, persist } from 'zustand/middleware'
 import { parseRequest } from '../lib/dataUtils'
 
 const DEFAULT_REQUEST = {
@@ -9,7 +9,8 @@ const DEFAULT_REQUEST = {
 
 export const useAppStore = create(
   devtools(
-    (set) => ({
+    persist(
+      (set) => ({
       // State
       requests: [],
       folders: [],
@@ -102,6 +103,16 @@ export const useAppStore = create(
       setWebLoading: (loading) => set({ webLoading: loading }),
       setWebResponseTime: (time) => set({ webResponseTime: time }),
     }),
+    {
+      name: 'gostman-storage',
+      partialize: (state) => ({
+        requests: state.requests,
+        folders: state.folders,
+        variables: state.variables,
+        requestHistory: state.requestHistory,
+      }),
+    }
+  ),
     { name: 'gostman-store', enabled: import.meta.env.DEV }
   )
 )
