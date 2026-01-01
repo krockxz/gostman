@@ -21,6 +21,7 @@ const badgeVariants = cva(
         delete: "border-transparent bg-red-500/10 text-red-400 border-red-500/20 shadow-sm shadow-red-500/5",
         patch: "border-transparent bg-yellow-500/10 text-yellow-400 border-yellow-500/20 shadow-sm shadow-yellow-500/5",
         head: "border-transparent bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-sm shadow-purple-500/5",
+        graphql: "border-transparent bg-pink-500/10 text-pink-400 border-pink-500/20 shadow-sm shadow-pink-500/5",
         // Status badges
         success: "border-transparent bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
         redirect: "border-transparent bg-cyan-500/10 text-cyan-400 border-cyan-500/20",

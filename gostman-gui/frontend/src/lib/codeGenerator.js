@@ -1,40 +1,42 @@
 /**
  * Generate code snippets for HTTP requests in various languages
+ * Uses ES Toolkit for efficient operations
  */
 
+import { parseJSON } from './dataUtils'
+
 /**
- * Parse JSON safely, return empty object if invalid
+ * Build URL with query parameters
  */
-function safeParseJSON(jsonString) {
-  if (!jsonString || jsonString.trim() === '') return {}
-  try {
-    return JSON.parse(jsonString)
-  } catch (e) {
-    return {}
-  }
+function buildUrl(url, params) {
+  if (Object.keys(params).length === 0) return url
+
+  const searchParams = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    searchParams.append(key, String(value))
+  })
+  return `${url}?${searchParams.toString()}`
+}
+
+/**
+ * Format headers for code output
+ */
+function formatHeaders(headersObj) {
+  return Object.entries(headersObj)
+    .map(([key, value]) => `    "${key}": "${value}"`)
+    .join(',\n')
 }
 
 /**
  * Generate cURL command
  */
 export function generateCurl(method, url, headers, body, queryParams) {
-  const headersObj = safeParseJSON(headers)
-  const bodyObj = safeParseJSON(body)
-  const paramsObj = safeParseJSON(queryParams)
+  const headersObj = parseJSON(headers)
+  const bodyObj = parseJSON(body)
+  const paramsObj = parseJSON(queryParams)
 
-  let curl = `curl -X ${method}`
-
-  // Build URL with query parameters
-  let fullUrl = url
-  if (Object.keys(paramsObj).length > 0) {
-    const searchParams = new URLSearchParams()
-    Object.entries(paramsObj).forEach(([key, value]) => {
-      searchParams.append(key, String(value))
-    })
-    fullUrl += `?${searchParams.toString()}`
-  }
-
-  curl += ` "${fullUrl}"`
+  const fullUrl = buildUrl(url, paramsObj)
+  let curl = `curl -X ${method} "${fullUrl}"`
 
   // Add headers
   Object.entries(headersObj).forEach(([key, value]) => {
@@ -54,35 +56,23 @@ export function generateCurl(method, url, headers, body, queryParams) {
  * Generate JavaScript fetch code
  */
 export function generateJavaScript(method, url, headers, body, queryParams) {
-  const headersObj = safeParseJSON(headers)
-  const bodyObj = safeParseJSON(body)
-  const paramsObj = safeParseJSON(queryParams)
+  const headersObj = parseJSON(headers)
+  const bodyObj = parseJSON(body)
+  const paramsObj = parseJSON(queryParams)
 
-  // Build URL with query parameters
-  let fullUrl = url
-  if (Object.keys(paramsObj).length > 0) {
-    const searchParams = new URLSearchParams()
-    Object.entries(paramsObj).forEach(([key, value]) => {
-      searchParams.append(key, String(value))
-    })
-    fullUrl += `?${searchParams.toString()}`
-  }
-
+  const fullUrl = buildUrl(url, paramsObj)
   let code = `fetch("${fullUrl}", {\n`
   code += `  method: "${method}",\n`
 
-  // Add headers
-  if (Object.keys(headersObj).length > 0) {
-    code += `  headers: {\n`
-    Object.entries(headersObj).forEach(([key, value], index) => {
-      code += `    "${key}": "${value}"${index < Object.entries(headersObj).length - 1 ? ',' : ''}\n`
-    })
-    code += `  }`
+  const hasHeaders = Object.keys(headersObj).length > 0
+  const hasBody = ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase()) && Object.keys(bodyObj).length > 0
+
+  if (hasHeaders) {
+    code += `  headers: {\n${formatHeaders(headersObj)}\n  }`
   }
 
-  // Add body for methods that support it
-  if (['POST', 'PUT', 'PATCH'].includes(method.toUpperCase()) && Object.keys(bodyObj).length > 0) {
-    if (Object.keys(headersObj).length > 0) code += ',\n'
+  if (hasBody) {
+    if (hasHeaders) code += ',\n'
     const bodyString = JSON.stringify(bodyObj, null, 2)
     code += `  body: JSON.stringify(${bodyString})\n`
   } else {
@@ -101,49 +91,46 @@ export function generateJavaScript(method, url, headers, body, queryParams) {
  * Generate Python requests code
  */
 export function generatePython(method, url, headers, body, queryParams) {
-  const headersObj = safeParseJSON(headers)
-  const bodyObj = safeParseJSON(body)
-  const paramsObj = safeParseJSON(queryParams)
+  const headersObj = parseJSON(headers)
+  const bodyObj = parseJSON(body)
+  const paramsObj = parseJSON(queryParams)
 
   let code = `import requests\n\n`
   code += `url = "${url}"\n`
 
+  const hasParams = Object.keys(paramsObj).length > 0
+  const hasHeaders = Object.keys(headersObj).length > 0
+  const hasBody = ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase()) && Object.keys(bodyObj).length > 0
+
   // Add query parameters
-  if (Object.keys(paramsObj).length > 0) {
+  if (hasParams) {
     code += `params = {\n`
     Object.entries(paramsObj).forEach(([key, value], index) => {
       const formattedValue = typeof value === 'string' ? `"${value}"` : value
-      code += `    "${key}": ${formattedValue}${index < Object.entries(paramsObj).length - 1 ? ',' : ''}\n`
+      code += `    "${key}": ${formattedValue}${index < Object.keys(paramsObj).length - 1 ? ',' : ''}\n`
     })
     code += `}\n`
   }
 
   // Add headers
-  if (Object.keys(headersObj).length > 0) {
-    code += `headers = {\n`
-    Object.entries(headersObj).forEach(([key, value], index) => {
-      code += `    "${key}": "${value}"${index < Object.entries(headersObj).length - 1 ? ',' : ''}\n`
-    })
-    code += `}\n`
+  if (hasHeaders) {
+    code += `headers = {\n${formatHeaders(headersObj)}\n}\n`
   }
 
   // Add body for methods that support it
-  let bodyLine = ''
-  if (['POST', 'PUT', 'PATCH'].includes(method.toUpperCase()) && Object.keys(bodyObj).length > 0) {
+  if (hasBody) {
     const bodyString = JSON.stringify(bodyObj, null, 2)
       .split('\n')
-      .map((line, i) => i === 0 ? line : '    ' + line)
+      .map((line) => '    ' + line)
       .join('\n')
-    bodyLine = `\ndata = ${bodyString}\n`
+    code += `\ndata = ${bodyString}\n`
   }
 
   // Build request call
   code += `\nresponse = requests.${method.toLowerCase()}(`
-  if (Object.keys(paramsObj).length > 0) code += 'url, params=params'
-  else code += 'url'
-
-  if (Object.keys(headersObj).length > 0) code += ', headers=headers'
-  if (bodyLine) code += ', json=data'
+  code += hasParams ? 'url, params=params' : 'url'
+  if (hasHeaders) code += ', headers=headers'
+  if (hasBody) code += ', json=data'
 
   code += `)\n\n`
   code += `print(response.status_code)\n`
@@ -156,19 +143,11 @@ export function generatePython(method, url, headers, body, queryParams) {
  * Generate Go http.NewRequest code
  */
 export function generateGo(method, url, headers, body, queryParams) {
-  const headersObj = safeParseJSON(headers)
-  const bodyObj = safeParseJSON(body)
-  const paramsObj = safeParseJSON(queryParams)
+  const headersObj = parseJSON(headers)
+  const bodyObj = parseJSON(body)
+  const paramsObj = parseJSON(queryParams)
 
-  // Build URL with query parameters
-  let fullUrl = url
-  if (Object.keys(paramsObj).length > 0) {
-    const searchParams = new URLSearchParams()
-    Object.entries(paramsObj).forEach(([key, value]) => {
-      searchParams.append(key, String(value))
-    })
-    fullUrl += `?${searchParams.toString()}`
-  }
+  const fullUrl = buildUrl(url, paramsObj)
 
   let code = `package main\n\n`
   code += `import (\n`
@@ -179,10 +158,12 @@ export function generateGo(method, url, headers, body, queryParams) {
   code += `    "net/http"\n`
   code += `)\n\n`
 
-  code += `func main() {\n`
+  code += `func main() {`
+
+  const hasBody = ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase()) && Object.keys(bodyObj).length > 0
 
   // Add body for methods that support it
-  if (['POST', 'PUT', 'PATCH'].includes(method.toUpperCase()) && Object.keys(bodyObj).length > 0) {
+  if (hasBody) {
     const bodyString = JSON.stringify(bodyObj, null, 4)
       .split('\n')
       .map((line) => '    ' + line)
@@ -192,12 +173,7 @@ export function generateGo(method, url, headers, body, queryParams) {
   }
 
   code += `    req, _ := http.NewRequest("${method}", "${fullUrl}"`
-
-  if (['POST', 'PUT', 'PATCH'].includes(method.toUpperCase()) && Object.keys(bodyObj).length > 0) {
-    code += `, bytes.NewBuffer(bodyBytes))\n\n`
-  } else {
-    code += `, nil)\n\n`
-  }
+  code += hasBody ? `, bytes.NewBuffer(bodyBytes))\n\n` : `, nil)\n\n`
 
   // Add headers
   if (Object.keys(headersObj).length > 0) {

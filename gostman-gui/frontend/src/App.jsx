@@ -1,41 +1,58 @@
-import { useState, useEffect } from 'react'
-import { RotateCcw } from "lucide-react"
+import { useEffect, useCallback } from 'react'
+import { RotateCcw, Import } from "lucide-react"
 import { SendRequest, GetRequests, SaveRequest, DeleteRequest, GetVariables, SaveVariables } from "../wailsjs/go/main/App"
 import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
 import { ResponsePanel } from "./components/ResponsePanel"
 import { CodeSnippetDialog } from "./components/CodeSnippetDialog"
+import { ImportExportDialog } from "./components/ImportExportDialog"
 import { Textarea } from "./components/ui/textarea"
 import { TabBar } from "./components/TabBar"
 import { Button } from "./components/ui/button"
 import { RequestTabs } from "./components/RequestTabs"
 import { generateAllSnippets } from "./lib/codeGenerator"
+import { importGostman } from "./lib/importExport"
+import { useAppStore, useActiveTab } from "./store/appStore"
+import { parseJSON } from "./lib/dataUtils"
 import logo from "./assets/logo.jpg"
 
-const DEFAULT_REQUEST = {
-  id: "",
-  name: "New Request",
-  method: "GET",
-  url: "",
-  headers: "{}",
-  body: "",
-  queryParams: "{}",
-  response: ""
-}
-
-let nextTabId = 1
-
 function App() {
-  const [requests, setRequests] = useState([])
-  const [requestHistory, setRequestHistory] = useState([])
-  const [folders, setFolders] = useState([])
-  const [tabs, setTabs] = useState([{ id: 'tab-1', request: { ...DEFAULT_REQUEST }, status: '', loading: false, responseTime: null }])
-  const [activeTabId, setActiveTabId] = useState('tab-1')
-  const [variables, setVariables] = useState("{}")
-  const [codeDialogOpen, setCodeDialogOpen] = useState(false)
-  const [codeSnippets, setCodeSnippets] = useState(null)
+  // Zustand store hooks
+  const requests = useAppStore((s) => s.requests)
+  const requestHistory = useAppStore((s) => s.requestHistory)
+  const folders = useAppStore((s) => s.folders)
+  const tabs = useAppStore((s) => s.tabs)
+  const activeTabId = useAppStore((s) => s.activeTabId)
+  const variables = useAppStore((s) => s.variables)
+  const codeDialogOpen = useAppStore((s) => s.codeDialogOpen)
+  const codeSnippets = useAppStore((s) => s.codeSnippets)
+  const importDialogOpen = useAppStore((s) => s.importDialogOpen)
 
-  const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0]
+  // Store actions
+  const setRequests = useAppStore((s) => s.setRequests)
+  const setFolders = useAppStore((s) => s.setFolders)
+  const setVariables = useAppStore((s) => s.setVariables)
+  const setActiveTab = useAppStore((s) => s.setActiveTab)
+  const newTab = useAppStore((s) => s.newTab)
+  const closeTab = useAppStore((s) => s.closeTab)
+  const updateActiveTab = useAppStore((s) => s.updateActiveTab)
+  const updateActiveRequest = useAppStore((s) => s.updateActiveRequest)
+  const loadRequestIntoTab = useAppStore((s) => s.loadRequestIntoTab)
+  const loadHistoryIntoTab = useAppStore((s) => s.loadHistoryIntoTab)
+  const addToHistory = useAppStore((s) => s.addToHistory)
+  const deleteHistoryItem = useAppStore((s) => s.deleteHistoryItem)
+  const clearHistory = useAppStore((s) => s.clearHistory)
+  const addFolder = useAppStore((s) => s.addFolder)
+  const deleteFolder = useAppStore((s) => s.deleteFolder)
+  const toggleFolder = useAppStore((s) => s.toggleFolder)
+  const openCodeDialog = useAppStore((s) => s.openCodeDialog)
+  const closeCodeDialog = useAppStore((s) => s.closeCodeDialog)
+  const openImportDialog = useAppStore((s) => s.openImportDialog)
+  const closeImportDialog = useAppStore((s) => s.closeImportDialog)
+
+  // Get active tab
+  const activeTab = useActiveTab()
+  const activeRequest = activeTab?.request || {}
 
   // -- Data Loading --
 
@@ -49,8 +66,7 @@ function App() {
     } catch (e) {
       console.error("Failed to load data:", e)
     }
-  }, [])
-
+  }, [setRequests, setVariables, setFolders])
 
   useEffect(() => {
     fetchInitialData()
@@ -63,31 +79,8 @@ function App() {
 
   // -- Tab Management --
 
-  const updateActiveTab = (updates) => {
-    setTabs(prev => prev.map(tab =>
-      tab.id === activeTabId ? { ...tab, ...updates } : tab
-    ))
-  }
-
-  const updateActiveRequest = (updates) => {
-    updateActiveTab({ request: { ...activeTab.request, ...updates } })
-  }
-
   const updateField = (field, value) => {
     updateActiveRequest({ [field]: value })
-  }
-
-  const handleNewTab = (folderId = null) => {
-    nextTabId++
-    const newTab = {
-      id: `tab-${nextTabId}`,
-      request: { ...DEFAULT_REQUEST, folderId },
-      status: '',
-      loading: false,
-      responseTime: null
-    }
-    setTabs(prev => [...prev, newTab])
-    setActiveTabId(newTab.id)
   }
 
   // Keyboard shortcut for New Request (Ctrl+N)
@@ -95,54 +88,38 @@ function App() {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault()
-        handleNewTab()
+        newTab()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
-
-  const handleCloseTab = (tabId) => {
-    if (tabs.length === 1) return // Always keep at least one tab
-
-    setTabs(prev => {
-      const newTabs = prev.filter(t => t.id !== tabId)
-      if (activeTabId === tabId) {
-        const closedIndex = prev.findIndex(t => t.id === tabId)
-        const newActiveTab = newTabs[Math.max(0, closedIndex - 1)]
-        setActiveTabId(newActiveTab.id)
-      }
-      return newTabs
-    })
-  }
+  }, [newTab])
 
   const handleSelectRequest = (req) => {
-    updateActiveTab({ request: req, status: '', responseTime: null })
+    loadRequestIntoTab(req)
   }
 
   const handleCreateFolder = () => {
     const name = prompt("Enter folder name:")
     if (name) {
-      setFolders([...folders, { id: Date.now().toString(), name, isOpen: true }])
+      addFolder(name)
     }
   }
 
   const handleDeleteFolder = (folderId) => {
     if (confirm("Delete folder? Requests inside will be moved to root.")) {
-      setFolders(prev => prev.filter(f => f.id !== folderId))
+      deleteFolder(folderId)
     }
   }
 
   const handleToggleFolder = (folderId) => {
-    setFolders(prev => prev.map(f => f.id === folderId ? { ...f, isOpen: !f.isOpen } : f))
+    toggleFolder(folderId)
   }
-
-
 
   const handleSave = async () => {
     try {
-      const msg = await SaveRequest(activeTab.request)
+      const msg = await SaveRequest(activeRequest)
       alert(msg)
       await refreshRequests()
     } catch (e) {
@@ -156,7 +133,7 @@ function App() {
       try {
         await DeleteRequest(id)
         await refreshRequests()
-        handleNewTab()
+        newTab()
       } catch (e) {
         console.error(e)
       }
@@ -171,61 +148,40 @@ function App() {
 
     try {
       const resp = await SendRequest(
-        activeTab.request.method,
-        activeTab.request.url,
-        activeTab.request.headers,
-        activeTab.request.body,
-        activeTab.request.queryParams
+        activeRequest.method,
+        activeRequest.url,
+        activeRequest.headers,
+        activeRequest.body,
+        activeRequest.queryParams
       )
 
       updateActiveTab({
-        request: { ...activeTab.request, response: resp.body },
+        request: { ...activeRequest, response: resp.body },
         status: resp.status,
         responseTime: getResponseTime(),
         loading: false
       })
 
-      addToHistory(activeTab.request)
+      addToHistory(activeRequest)
     } catch (e) {
       updateActiveTab({
-        request: { ...activeTab.request, response: "Error: " + e },
+        request: { ...activeRequest, response: "Error: " + e },
         status: "Error",
         responseTime: getResponseTime(),
         loading: false
       })
 
-      addToHistory(activeTab.request)
+      addToHistory(activeRequest)
     }
-  }
-
-  const addToHistory = (request) => {
-    const historyItem = {
-      ...request,
-      id: `hist-${Date.now()}`,
-      timestamp: new Date().toISOString()
-    }
-
-    setRequestHistory(prev => {
-      // Remove duplicates (same method + url)
-      const filtered = prev.filter(item =>
-        !(item.method === request.method && item.url === request.url)
-      )
-      // Add new item to the beginning
-      return [historyItem, ...filtered].slice(0, 50) // Keep last 50 requests
-    })
   }
 
   const handleSelectHistoryItem = (historyItem) => {
-    updateActiveTab({ request: { ...historyItem, response: '' }, status: '', responseTime: null })
-  }
-
-  const handleDeleteHistoryItem = (id) => {
-    setRequestHistory(prev => prev.filter(item => item.id !== id))
+    loadHistoryIntoTab(historyItem)
   }
 
   const handleClearHistory = () => {
     if (confirm("Are you sure you want to clear all history?")) {
-      setRequestHistory([])
+      clearHistory()
     }
   }
 
@@ -240,19 +196,40 @@ function App() {
 
   const handleGenerateCode = () => {
     const snippets = generateAllSnippets(
-      activeTab.request.method,
-      activeTab.request.url,
-      activeTab.request.headers,
-      activeTab.request.body,
-      activeTab.request.queryParams
+      activeRequest.method,
+      activeRequest.url,
+      activeRequest.headers,
+      activeRequest.body,
+      activeRequest.queryParams
     )
-    setCodeSnippets(snippets)
-    setCodeDialogOpen(true)
+    openCodeDialog(snippets)
   }
 
-  const handleCloseCodeDialog = () => {
-    setCodeDialogOpen(false)
-    setCodeSnippets(null)
+  const handleImport = async (importData) => {
+    try {
+      if (importData.requests) {
+        // Import each request
+        for (const req of importData.requests) {
+          await SaveRequest(req)
+        }
+        await refreshRequests()
+      }
+      if (importData.folders) {
+        setFolders(importData.folders)
+      }
+      if (importData.variables) {
+        const varsStr = JSON.stringify(importData.variables, null, 2)
+        setVariables(varsStr)
+        await SaveVariables(varsStr)
+      }
+    } catch (e) {
+      console.error("Import failed:", e)
+      alert("Import failed: " + e.message)
+    }
+  }
+
+  const handleNewRequest = () => {
+    newTab()
   }
 
   return (
@@ -267,20 +244,31 @@ function App() {
           </div>
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => {
-            if (confirm("Reset application state? This will clear all data.")) {
-              localStorage.clear()
-              window.location.reload()
-            }
-          }}
-          className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
-          title="Reset to default (Clear data)"
-        >
-          <RotateCcw className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={openImportDialog}
+            className="gap-2"
+          >
+            <Import className="h-4 w-4" />
+            Import / Export
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              if (confirm("Reset application state? This will clear all data.")) {
+                localStorage.clear()
+                window.location.reload()
+              }
+            }}
+            className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
+            title="Reset to default (Clear data)"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </Button>
+        </div>
       </header>
 
       {/* Main Content */}
@@ -288,17 +276,17 @@ function App() {
         <Sidebar
           requests={requests}
           requestHistory={requestHistory}
-          activeRequest={activeTab.request}
+          activeRequest={activeRequest}
           onSelectRequest={handleSelectRequest}
           onSelectHistoryItem={handleSelectHistoryItem}
-          onDeleteHistoryItem={handleDeleteHistoryItem}
+          onDeleteHistoryItem={deleteHistoryItem}
           onClearHistory={handleClearHistory}
           onNewRequest={handleNewRequest}
           onDeleteRequest={handleDelete}
           onCreateFolder={handleCreateFolder}
           onDeleteFolder={handleDeleteFolder}
           onToggleFolder={handleToggleFolder}
-          onNewRequestInFolder={handleNewTab}
+          onNewRequestInFolder={newTab}
         />
 
         <div className="flex flex-1 flex-col overflow-hidden">
@@ -306,13 +294,13 @@ function App() {
           <TabBar
             tabs={tabs}
             activeTabId={activeTabId}
-            onTabSelect={setActiveTabId}
-            onTabClose={handleCloseTab}
-            onNewTab={handleNewTab}
+            onTabSelect={setActiveTab}
+            onTabClose={closeTab}
+            onNewTab={newTab}
           />
 
           <RequestBar
-            activeRequest={activeTab.request}
+            activeRequest={activeRequest}
             onMethodChange={(val) => updateField('method', val)}
             onUrlChange={(val) => updateField('url', val)}
             onNameChange={(val) => updateField('name', val)}
@@ -322,23 +310,26 @@ function App() {
             onSend={handleSend}
             onSave={handleSave}
             onGenerateCode={handleGenerateCode}
-            loading={activeTab.loading}
+            loading={activeTab?.loading || false}
           />
 
           <div className="flex flex-1 flex-col overflow-hidden">
             <RequestTabs
-              activeRequest={activeTab.request}
+              activeRequest={activeRequest}
               onUpdateField={updateField}
               variables={variables}
               onUpdateVariables={setVariables}
               onSaveVars={handleSaveVars}
+              response={activeRequest.response || ''}
+              responseStatus={activeTab?.status || ''}
+              responseHeaders={null}
               EditorComponent={Textarea}
             />
 
             <ResponsePanel
-              response={activeTab.request.response}
-              status={activeTab.status}
-              responseTime={activeTab.responseTime}
+              response={activeRequest.response || ''}
+              status={activeTab?.status || ''}
+              responseTime={activeTab?.responseTime}
             />
           </div>
         </div>
@@ -348,7 +339,18 @@ function App() {
       {codeDialogOpen && codeSnippets && (
         <CodeSnippetDialog
           snippets={codeSnippets}
-          onClose={handleCloseCodeDialog}
+          onClose={closeCodeDialog}
+        />
+      )}
+
+      {/* Import/Export Dialog */}
+      {importDialogOpen && (
+        <ImportExportDialog
+          requests={requests}
+          folders={folders}
+          variables={parseJSON(variables, {})}
+          onImport={handleImport}
+          onClose={closeImportDialog}
         />
       )}
     </div>

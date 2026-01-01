@@ -2,7 +2,10 @@ import React from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { ScrollArea } from "./ui/scroll-area"
 import { Button } from "./ui/button"
-import { Braces, Hash, Heading1, FolderOpen } from "lucide-react"
+import { Braces, Hash, Heading1, FolderOpen, FlaskConical, Zap, Radio } from "lucide-react"
+import { TestScriptsPanel } from "./TestScriptsPanel"
+import { GraphQLPanel, formatGraphQLRequest } from "./GraphQLPanel"
+import { WebSocketPanel } from "./WebSocketPanel"
 
 export function RequestTabs({
     activeRequest,
@@ -10,6 +13,9 @@ export function RequestTabs({
     variables,
     onUpdateVariables,
     onSaveVars,
+    response,
+    responseStatus,
+    responseHeaders,
     EditorComponent
 }) {
     return (
@@ -17,9 +23,12 @@ export function RequestTabs({
             <div className="border-b bg-muted/10 px-4 backdrop-blur-sm">
                 <TabsList>
                     <TabsTrigger value="body" icon={Braces}>Body</TabsTrigger>
+                    <TabsTrigger value="graphql" icon={Zap}>GraphQL</TabsTrigger>
+                    <TabsTrigger value="websocket" icon={Radio}>WebSocket</TabsTrigger>
                     <TabsTrigger value="params" icon={Hash}>Params</TabsTrigger>
                     <TabsTrigger value="headers" icon={Heading1}>Headers</TabsTrigger>
                     <TabsTrigger value="vars" icon={FolderOpen}>Env Vars</TabsTrigger>
+                    <TabsTrigger value="test" icon={FlaskConical}>Extract</TabsTrigger>
                 </TabsList>
             </div>
 
@@ -36,6 +45,23 @@ export function RequestTabs({
                             height="100%" // Prop for Monaco
                         />
                     </div>
+                </TabsContent>
+
+                <TabsContent value="graphql" className="h-full p-0 m-0">
+                    <GraphQLPanel
+                        query={activeRequest.graphqlQuery || activeRequest.body || ''}
+                        variables={activeRequest.graphqlVariables || '{}'}
+                        onQueryChange={(val) => onUpdateField('graphqlQuery', val)}
+                        onVariablesChange={(val) => onUpdateField('graphqlVariables', val)}
+                    />
+                </TabsContent>
+
+                <TabsContent value="websocket" className="h-full p-0 m-0">
+                    <WebSocketPanel
+                        url={activeRequest.wsUrl || activeRequest.url || ''}
+                        onUrlChange={(val) => onUpdateField('wsUrl', val)}
+                        headers={activeRequest.headers || '{}'}
+                    />
                 </TabsContent>
 
                 <TabsContent value="params" className="h-full p-0 m-0">
@@ -119,6 +145,16 @@ export function RequestTabs({
                             </Button>
                         </div>
                     </div>
+                </TabsContent>
+
+                <TabsContent value="test" className="h-full p-0 m-0">
+                    <TestScriptsPanel
+                        response={activeRequest.response}
+                        responseStatus={null}
+                        responseHeaders={activeRequest.responseHeaders}
+                        variables={variables}
+                        onUpdateVariables={onUpdateVariables}
+                    />
                 </TabsContent>
             </div>
         </Tabs>

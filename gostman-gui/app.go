@@ -126,6 +126,39 @@ func replacePlaceholders(input string, variables map[string]string) string {
 // --- Exported Methods (Callable from JS) ---
 
 func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON string) ResponseMsg {
+	// Handle GraphQL requests - convert to POST with JSON body
+	originalMethod := method
+	if method == "GRAPHQL" {
+		method = "POST"
+		// Format GraphQL request
+		var graphqlReq struct {
+			Query     string `json:"query"`
+			Variables any    `json:"variables"`
+		}
+		graphqlReq.Query = bodyStr
+
+		// Parse variables if provided
+		var vars map[string]any
+		if err := json.Unmarshal([]byte(paramsJSON), &vars); err == nil {
+			graphqlReq.Variables = vars
+		}
+
+		formattedBody, err := json.Marshal(graphqlReq)
+		if err == nil {
+			bodyStr = string(formattedBody)
+		}
+
+		// Ensure Content-Type header is set
+		var headers map[string]string
+		if err := json.Unmarshal([]byte(headersJSON), &headers); err == nil {
+			if headers["Content-Type"] == "" {
+				headers["Content-Type"] = "application/json"
+			}
+			updatedHeaders, _ := json.Marshal(headers)
+			headersJSON = string(updatedHeaders)
+		}
+	}
+
 	// 1. Load and Parse Variables
 	variablesJSON := a.GetVariables()
 	var variables map[string]string
