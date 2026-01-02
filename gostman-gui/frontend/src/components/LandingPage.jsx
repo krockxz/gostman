@@ -45,7 +45,6 @@ const FEATURES = [
     description: "Native support for REST, GraphQL, and WebSockets. One tool for everything.",
     gradient: "from-blue-500/20 to-cyan-500/20",
     iconColor: "text-blue-400",
-    glowColor: "rgba(59, 130, 246, 0.15)",
   },
   {
     icon: Workflow,
@@ -53,7 +52,6 @@ const FEATURES = [
     description: "Extract data from responses and use it in subsequent requests comfortably.",
     gradient: "from-violet-500/20 to-purple-500/20",
     iconColor: "text-violet-400",
-    glowColor: "rgba(139, 92, 246, 0.15)",
   },
   {
     icon: TestTube,
@@ -61,7 +59,6 @@ const FEATURES = [
     description: "Write JavaScript tests to verify your API responses automatically.",
     gradient: "from-amber-500/20 to-orange-500/20",
     iconColor: "text-amber-400",
-    glowColor: "rgba(245, 158, 11, 0.15)",
   },
   {
     icon: Import,
@@ -69,7 +66,6 @@ const FEATURES = [
     description: "Import your Postman collections instantly. No lock-in, ever.",
     gradient: "from-emerald-500/20 to-green-500/20",
     iconColor: "text-emerald-400",
-    glowColor: "rgba(16, 185, 129, 0.15)",
   },
   {
     icon: Zap,
@@ -77,7 +73,6 @@ const FEATURES = [
     description: "Built with Go for instant startup and blazing-fast response times.",
     gradient: "from-yellow-500/20 to-amber-500/20",
     iconColor: "text-yellow-400",
-    glowColor: "rgba(234, 179, 8, 0.15)",
   },
   {
     icon: Shield,
@@ -85,7 +80,6 @@ const FEATURES = [
     description: "All data stays on your machine. No cloud sync, no tracking, no accounts.",
     gradient: "from-rose-500/20 to-red-500/20",
     iconColor: "text-rose-400",
-    glowColor: "rgba(244, 63, 94, 0.15)",
   },
 ]
 
@@ -105,67 +99,6 @@ const SHOWCASE_TABS = [
   { id: "chaining", label: "Chaining", icon: Link2, description: "Chain requests with data extraction" },
   { id: "websocket", label: "WebSocket", icon: Radio, description: "Real-time bidirectional messaging" },
 ]
-
-// Enhanced Feature Card with polished animations
-const FeatureCard = ({ feature, index }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 30 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "-50px" }}
-    transition={{
-      duration: 0.5,
-      delay: index * 0.1,
-      ease: [0.25, 0.4, 0.25, 1]
-    }}
-    whileHover={{ y: -8 }}
-  >
-    <Card className={cn(
-      "group relative h-full border border-border/60 bg-background/40 backdrop-blur-sm overflow-hidden",
-      "hover:border-border/80 transition-all duration-300"
-    )}>
-      {/* Glow effect on hover */}
-      <motion.div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-        style={{ background: `radial-gradient(600px_circle_at_var(--mouse-x)_var(--mouse-y),_${feature.glowColor},transparent_40%)` }}
-      />
-      <CardContent className="relative p-6">
-        {/* Icon container with enhanced hover effect */}
-        <motion.div
-          className={cn(
-            "flex h-14 w-14 items-center justify-center rounded-2xl mb-5 bg-gradient-to-br",
-            feature.gradient
-          )}
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        >
-          <feature.icon className={cn("h-7 w-7", feature.iconColor)} />
-        </motion.div>
-
-        {/* Title with subtle underline animation */}
-        <div className="relative">
-          <h3 className="text-lg font-semibold mb-2 group-hover:text-primary transition-colors duration-300">
-            {feature.title}
-          </h3>
-          <motion.div
-            className="absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-primary/50 to-transparent w-0 group-hover:w-full"
-            transition={{ duration: 0.3 }}
-          />
-        </div>
-
-        {/* Description with fade-in on hover */}
-        <p className="text-sm text-muted-foreground/80 leading-relaxed">
-          {feature.description}
-        </p>
-
-        /* Subtle shine effect */
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:translate-x-full"
-          transition={{ duration: 1, ease: "linear" }}
-        />
-      </CardContent>
-    </Card>
-  </motion.div>
-)
 
 const useGitHubStars = () => {
   const [stars, setStars] = useState(null)
@@ -354,14 +287,16 @@ export function LandingPage({ onGetStarted }) {
               className="text-lg md:text-xl text-muted-foreground/90 max-w-2xl mx-auto leading-relaxed"
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 0.7, ease: [0.25, 0.4, 0.25, 1] }}
+              style={{ willChange: "transform, opacity" }}
+              transition={{ delay: 0.5, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             >
               The Native HTTP Client.{" "}
               <motion.span
                 className="text-primary font-medium"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8, duration: 0.6, ease: [0.25, 0.4, 0.25, 1] }}
+                style={{ willChange: "transform, opacity" }}
+                transition={{ delay: 0.8, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
               >
                 10x lighter than Postman.
               </motion.span>
