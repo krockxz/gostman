@@ -200,7 +200,7 @@ export function LandingPage({ onGetStarted }) {
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 200, damping: 25 }}
       >
-        <div className="max-w-5xl w-full backdrop-blur-md bg-background/70 border border-border/50 rounded-xl shadow-sm">
+        <div className="max-w-5xl w-full backdrop-blur-xl bg-background/75 border border-border/40 rounded-2xl shadow-md">
           <div className="px-5 py-3 flex items-center justify-between">
             <motion.div
               className="flex items-center gap-2.5"
