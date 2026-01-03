@@ -1,11 +1,42 @@
-import React, { useState, useEffect } from "react"
-import { Play, ChevronDown, ChevronRight, FileJson, Zap, Check, AlertCircle } from "lucide-react"
+import React, { useState, useEffect, useRef } from "react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Play, ChevronDown, ChevronRight, FileJson, Zap, Check, AlertCircle, Sparkles, Code, Wand2, Copy, CheckCircle2 } from "lucide-react"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Textarea } from "./ui/textarea"
 import { parse, visit, buildSchema, Kind } from 'graphql'
 import { request } from 'graphql-request'
 import { GRAPHQL_EXAMPLES } from "../lib/graphqlConstants"
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 300, damping: 24 }
+  }
+}
+
+const pulseGlow = {
+  scale: [1, 1.02, 1],
+  opacity: [0.5, 0.8, 0.5],
+  transition: {
+    duration: 2,
+    repeat: Infinity,
+    ease: "easeInOut"
+  }
+}
 
 /**
  * GraphQL Query/Mutation Builder
@@ -108,6 +139,10 @@ export function GraphQLPanel({
   const [showExamples, setShowExamples] = useState(false)
   const [validation, setValidation] = useState({ valid: true, errors: [] })
   const [detectedVars, setDetectedVars] = useState([])
+  const [copied, setCopied] = useState(false)
+  const [isPrettifying, setIsPrettifying] = useState(false)
+  const [activeSection, setActiveSection] = useState('query')
+  const queryRef = useRef(null)
 
   // Validate query when it changes
   useEffect(() => {
@@ -134,13 +169,23 @@ export function GraphQLPanel({
     setShowExamples(false)
   }
 
-  const prettifyQuery = () => {
+  const prettifyQuery = async () => {
+    setIsPrettifying(true)
+    // Simulate async for animation
+    await new Promise(r => setTimeout(r, 300))
     try {
       const formatted = formatGraphQLQuery(query)
       onQueryChange(formatted)
     } catch (e) {
       console.error('Error prettifying:', e)
     }
+    setIsPrettifying(false)
+  }
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(query)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   const validateVariables = () => {
@@ -158,168 +203,367 @@ export function GraphQLPanel({
   const varValidation = validateVariables()
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/20">
-        <div className="flex items-center gap-2">
-          <Zap className="h-4 w-4 text-purple-500" />
-          <span className="text-sm font-medium">GraphQL Request</span>
-          {validation.valid ? (
-            <Check className="h-3.5 w-3.5 text-emerald-500" />
-          ) : query ? (
-            <AlertCircle className="h-3.5 w-3.5 text-destructive" />
-          ) : null}
+    <motion.div
+      className="flex flex-col h-full"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Header with gradient and glow */}
+      <motion.div
+        className="relative overflow-hidden"
+        variants={itemVariants}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-cyan-500/10" />
+        <div className="relative px-4 py-3 border-b border-border/50 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <motion.div
+                className="relative"
+                animate={validation.valid && query ? pulseGlow : {}}
+              >
+                <Sparkles className="h-5 w-5 text-purple-500" />
+                {!validation.valid && query && (
+                  <motion.div
+                    className="absolute -top-1 -right-1 h-2 w-2 bg-destructive rounded-full"
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 0.5, repeat: Infinity }}
+                  />
+                )}
+              </motion.div>
+              <div>
+                <span className="text-sm font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  GraphQL
+                </span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {validation.valid ? (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="flex items-center gap-1"
+                    >
+                      <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                      <span className="text-[10px] text-emerald-500">Valid</span>
+                    </motion.div>
+                  ) : query ? (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1, rotate: [0, -10, 10, -10, 0] }}
+                      className="flex items-center gap-1"
+                    >
+                      <AlertCircle className="h-3 w-3 text-destructive" />
+                      <span className="text-[10px] text-destructive">Invalid</span>
+                    </motion.div>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">Enter query</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Badge variant="secondary" className="text-xs bg-purple-500/10 text-purple-400 border-purple-500/20 font-mono">
+                  POST
+                </Badge>
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Badge variant="secondary" className="text-xs bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+                  {extractOperationName(query)}
+                </Badge>
+              </motion.div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowExamples(!showExamples)}
+                className="text-xs gap-1.5"
+              >
+                <Wand2 className="h-3 w-3" />
+                Templates
+              </Button>
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs bg-purple-500/10 text-purple-600 border-purple-500/20">
-            POST
-          </Badge>
-          <Badge variant="secondary" className="text-xs bg-blue-500/10 text-blue-600 border-blue-500/20">
-            {extractOperationName(query)}
-          </Badge>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowExamples(!showExamples)}
-            className="text-xs"
-          >
-            Examples
-          </Button>
-        </div>
-      </div>
+      </motion.div>
 
       {/* Validation Errors */}
-      {!validation.valid && validation.errors.length > 0 && (
-        <div className="px-4 py-2 bg-destructive/10 border-b border-destructive/20">
-          <p className="text-xs text-destructive">
-            {validation.errors[0]}
-          </p>
-        </div>
-      )}
-
-      {/* Examples Dropdown */}
-      {showExamples && (
-        <div className="px-4 py-2 border-b border-border/50 bg-muted/30">
-          <p className="text-xs text-muted-foreground mb-2">Insert an example:</p>
-          <div className="flex gap-2 flex-wrap">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => insertExample('query')}
-              className="text-xs"
-            >
-              Query
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => insertExample('mutation')}
-              className="text-xs"
-            >
-              Mutation
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => insertExample('subscription')}
-              className="text-xs"
-            >
-              Subscription
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => insertExample('variables')}
-              className="text-xs"
-            >
-              Variables
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Detected Variables */}
-      {detectedVars.length > 0 && (
-        <div className="px-4 py-2 border-b border-border/50 bg-blue-500/5 flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">Expected variables:</span>
-          <div className="flex gap-1 flex-wrap">
-            {detectedVars.map(v => (
-              <Badge key={v.name} variant="outline" className="text-xs">
-                {v.name}: {v.type}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Query Editor */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-4 py-2 border-b border-border/50 bg-muted/10 flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">Query / Mutation</span>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={prettifyQuery}
-            className="text-xs text-muted-foreground hover:text-foreground"
-            disabled={!query || !validation.valid}
+      <AnimatePresence mode="wait">
+        {!validation.valid && validation.errors.length > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-4 py-2 bg-destructive/10 border-b border-destructive/20"
           >
-            Prettify
-          </Button>
-        </div>
-        <div className="flex-1 p-4">
+            <motion.p
+              initial={{ x: -10 }}
+              animate={{ x: 0 }}
+              className="text-xs text-destructive flex items-center gap-2"
+            >
+              <AlertCircle className="h-3.5 w-3.5" />
+              {validation.errors[0]}
+            </motion.p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Templates Dropdown with stagger animation */}
+      <AnimatePresence>
+        {showExamples && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-4 py-3 border-b border-border/50 bg-gradient-to-r from-purple-500/5 to-pink-500/5"
+          >
+            <p className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
+              <Wand2 className="h-3 w-3" />
+              Insert a template:
+            </p>
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="grid grid-cols-2 sm:grid-cols-4 gap-2"
+            >
+              {[
+                { type: 'query', label: 'Query', icon: '🔍', color: 'from-blue-500/10 to-cyan-500/10', border: 'border-cyan-500/20' },
+                { type: 'mutation', label: 'Mutation', icon: '✏️', color: 'from-purple-500/10 to-pink-500/10', border: 'border-purple-500/20' },
+                { type: 'subscription', label: 'Subscription', icon: '🔄', color: 'from-green-500/10 to-emerald-500/10', border: 'border-emerald-500/20' },
+                { type: 'variables', label: 'Variables', icon: '{ }', color: 'from-orange-500/10 to-yellow-500/10', border: 'border-orange-500/20' },
+              ].map((template) => (
+                <motion.div key={template.type} variants={itemVariants}>
+                  <motion.button
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => insertExample(template.type)}
+                    className={`p-3 rounded-lg border ${template.border} bg-gradient-to-br ${template.color} hover:shadow-lg hover:shadow-${template.color.split('-')[1]}-500/10 transition-all`}
+                  >
+                    <div className="text-lg mb-1">{template.icon}</div>
+                    <div className="text-xs font-medium">{template.label}</div>
+                  </motion.button>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Detected Variables with pills */}
+      <AnimatePresence>
+        {detectedVars.length > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="px-4 py-2 border-b border-border/50 bg-gradient-to-r from-cyan-500/5 to-blue-500/5 flex items-center gap-2 flex-wrap"
+          >
+            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <Code className="h-3 w-3" />
+              Variables detected:
+            </span>
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="flex gap-1.5 flex-wrap"
+            >
+              {detectedVars.map((v, i) => (
+                <motion.div key={v.name} variants={itemVariants}>
+                  <Badge
+                    variant="outline"
+                    className="text-xs bg-cyan-500/10 text-cyan-400 border-cyan-500/30 font-mono"
+                  >
+                    ${v.name}
+                    <span className="text-cyan-400/50 mx-1">:</span>
+                    <span className="text-purple-400">{v.type}</span>
+                  </Badge>
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Editor Area */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <motion.div
+          variants={itemVariants}
+          className="px-4 py-2 border-b border-border/50 bg-muted/10 flex items-center justify-between"
+        >
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+            Query Editor
+          </span>
+          <div className="flex items-center gap-1">
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={copyToClipboard}
+                className="text-xs text-muted-foreground hover:text-foreground h-7 gap-1.5"
+              >
+                {copied ? (
+                  <>
+                    <Check className="h-3 w-3 text-emerald-500" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-3 w-3" />
+                    Copy
+                  </>
+                )}
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={prettifyQuery}
+                className="text-xs text-muted-foreground hover:text-foreground h-7 gap-1.5"
+                disabled={!query || !validation.valid}
+              >
+                {isPrettifying ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Sparkles className="h-3 w-3" />
+                    </motion.div>
+                    Prettifying...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="h-3 w-3" />
+                    Prettify
+                  </>
+                )}
+              </Button>
+            </motion.div>
+          </div>
+        </motion.div>
+        <motion.div
+          variants={itemVariants}
+          className="flex-1 p-4 relative"
+        >
+          {/* Animated border glow on focus */}
+          <div className="absolute inset-4 rounded-lg opacity-0 focus-within:opacity-100 transition-opacity pointer-events-none">
+            <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-cyan-500/20 blur-xl" />
+          </div>
           <Textarea
+            ref={queryRef}
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
             placeholder={GRAPHQL_EXAMPLES.query}
-            className={`w-full h-full font-mono text-sm resize-none ${!validation.valid ? 'border-destructive/50' : ''
-              } bg-background border-border/50`}
+            className={`w-full h-full font-mono text-sm resize-none relative z-10 ${!validation.valid ? 'border-destructive/50' : ''
+              } bg-background/80 backdrop-blur-sm border-border/50 focus:border-purple-500/50 transition-colors`}
             spellCheck={false}
           />
-        </div>
+        </motion.div>
       </div>
 
-      {/* Variables Editor */}
+      {/* Variables Editor with collapsible animation */}
       <div className="border-t border-border/50">
-        <details className="group" open>
-          <summary className="px-4 py-2 cursor-pointer hover:bg-muted/10 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-muted-foreground">
-                Query Variables (JSON)
-              </span>
-              {!varValidation.valid && (
-                <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+        <AnimatePresence>
+          <motion.details
+            className="group"
+            open={activeSection === 'variables'}
+            variants={itemVariants}
+          >
+            <motion.summary
+              onClick={(e) => {
+                e.preventDefault()
+                setActiveSection(activeSection === 'variables' ? 'query' : 'variables')
+              }}
+              className="px-4 py-2 cursor-pointer hover:bg-muted/10 flex items-center justify-between list-none"
+            >
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{ rotate: activeSection === 'variables' ? 90 : 0 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 24 }}
+                >
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </motion.div>
+                <span className="text-xs font-medium text-muted-foreground">
+                  Query Variables (JSON)
+                </span>
+                {!varValidation.valid && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                  >
+                    <AlertCircle className="h-3.5 w-3.5 text-destructive" />
+                  </motion.div>
+                )}
+              </div>
+              <Badge variant="outline" className="text-xs text-muted-foreground">
+                {detectedVars.length} expected
+              </Badge>
+            </motion.summary>
+            <AnimatePresence>
+              {activeSection === 'variables' && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="p-4 border-t border-border/50 bg-muted/5">
+                    <Textarea
+                      value={variables}
+                      onChange={(e) => onVariablesChange(e.target.value)}
+                      placeholder={GRAPHQL_EXAMPLES.variables}
+                      className={`w-full h-24 font-mono text-sm resize-none ${!varValidation.valid ? 'border-destructive/50' : ''
+                        } bg-background/80 backdrop-blur-sm border-border/50`}
+                      spellCheck={false}
+                    />
+                    {!varValidation.valid && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-xs text-destructive mt-2 flex items-center gap-1.5"
+                      >
+                        <AlertCircle className="h-3 w-3" />
+                        {varValidation.error}
+                      </motion.p>
+                    )}
+                  </div>
+                </motion.div>
               )}
-            </div>
-            <ChevronDown className="h-4 w-4 text-muted-foreground group-open:rotate-180 transition-transform" />
-          </summary>
-          <div className="p-4 border-t border-border/50">
-            <Textarea
-              value={variables}
-              onChange={(e) => onVariablesChange(e.target.value)}
-              placeholder={GRAPHQL_EXAMPLES.variables}
-              className={`w-full h-24 font-mono text-sm resize-none ${!varValidation.valid ? 'border-destructive/50' : ''
-                } bg-background border-border/50`}
-              spellCheck={false}
-            />
-            {!varValidation.valid && (
-              <p className="text-xs text-destructive mt-1">{varValidation.error}</p>
-            )}
-          </div>
-        </details>
+            </AnimatePresence>
+          </motion.details>
+        </AnimatePresence>
       </div>
 
-      {/* Request Preview */}
+      {/* Request Preview with syntax highlight */}
       <div className="border-t border-border/50">
-        <details className="group">
-          <summary className="px-4 py-2 cursor-pointer hover:bg-muted/10 flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">
-              Request Preview
-            </span>
-            <ChevronDown className="h-4 w-4 text-muted-foreground group-open:rotate-180 transition-transform" />
+        <motion.details
+          className="group"
+          variants={itemVariants}
+        >
+          <summary className="px-4 py-2 cursor-pointer hover:bg-muted/10 flex items-center justify-between list-none">
+            <div className="flex items-center gap-2">
+              <motion.div
+                animate={{ rotate: 'open' in { group } ? 90 : 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 24 }}
+              >
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-open:rotate-90 transition-transform" />
+              </motion.div>
+              <span className="text-xs font-medium text-muted-foreground">
+                Request Preview
+              </span>
+            </div>
+            <FileJson className="h-3.5 w-3.5 text-muted-foreground" />
           </summary>
           <div className="p-4 border-t border-border/50 bg-muted/20">
-            <pre className="text-xs font-mono text-muted-foreground overflow-x-auto">
-              {JSON.stringify({
+            <pre className="text-xs font-mono text-muted-foreground overflow-x-auto bg-background/50 rounded p-3 border border-border/30">
+              <code>{JSON.stringify({
                 query: query?.trim(),
                 variables: (() => {
                   try {
@@ -328,25 +572,30 @@ export function GraphQLPanel({
                     return undefined
                   }
                 })()
-              }, null, 2) || '{}'}
+              }, null, 2) || '{}'}</code>
             </pre>
           </div>
-        </details>
+        </motion.details>
       </div>
 
-      {/* Footer Info */}
-      <div className="px-4 py-2 border-t border-border/50 bg-muted/20 flex items-center justify-between">
+      {/* Footer Info with gradient text */}
+      <motion.div
+        variants={itemVariants}
+        className="px-4 py-2 border-t border-border/50 bg-muted/20 flex items-center justify-between"
+      >
         <p className="text-xs text-muted-foreground">
-          GraphQL requests will be sent as POST with Content-Type: application/json
+          GraphQL requests sent as <span className="font-mono text-purple-400">POST</span> with <span className="font-mono text-cyan-400">application/json</span>
         </p>
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-muted-foreground">Powered by</span>
-          <span className="text-xs font-medium">graphql</span>
-          <span className="text-xs text-muted-foreground">+</span>
-          <span className="text-xs font-medium">graphql-request</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            Powered by
+            <span className="font-mono text-pink-400">graphql</span>
+            <span>+</span>
+            <span className="font-mono text-purple-400">graphql-request</span>
+          </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 

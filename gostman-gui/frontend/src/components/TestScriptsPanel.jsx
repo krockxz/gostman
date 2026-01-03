@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react"
-import { Play, Plus, Trash2, Code2, FolderOpen, Info } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Play, Plus, Trash2, Code2, FolderOpen, Info, Link2, Sparkles, ChevronDown, CheckCircle2, Target } from "lucide-react"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Input } from "./ui/input"
@@ -9,6 +10,32 @@ import {
   VARIABLE_TEMPLATES,
   createTestScript
 } from "../lib/chaining"
+
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+}
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 300, damping: 24 }
+  }
+}
+
+const scopeConfig = {
+  environment: { label: 'Environment', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+  local: { label: 'Local', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
+  global: { label: 'Global', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' }
+}
 
 export function TestScriptsPanel({
   response,
@@ -21,6 +48,8 @@ export function TestScriptsPanel({
   const [extractors, setExtractors] = useState([{ name: '', path: '', scope: 'environment' }])
   const [previewResult, setPreviewResult] = useState(null)
   const [showTemplates, setShowTemplates] = useState(false)
+  const [extractedCount, setExtractedCount] = useState(0)
+  const [showScript, setShowScript] = useState(false)
 
   // Update preview when response or extractors change
   useEffect(() => {
@@ -84,11 +113,10 @@ export function TestScriptsPanel({
     const merged = { ...existing, ...extracted }
     onVariablesChange(JSON.stringify(merged, null, 2))
 
-    // Show success message
+    // Show extracted count
     const count = Object.keys(extracted).length
-    if (count > 0) {
-      alert(`Extracted ${count} variable${count > 1 ? 's' : ''} to environment`)
-    }
+    setExtractedCount(count)
+    setTimeout(() => setExtractedCount(0), 3000)
   }
 
   const useTemplate = (template) => {
@@ -108,157 +136,319 @@ export function TestScriptsPanel({
   const hasResponse = response && response.trim()
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/20">
-        <div className="flex items-center gap-2">
-          <Code2 className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">Variable Extraction</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {hasResponse && (
-            <Badge variant="secondary" className="text-xs">
-              Response available
-            </Badge>
-          )}
-        </div>
-      </div>
-
-      {/* Instructions */}
-      <div className="px-4 py-3 bg-primary/5 border-b border-primary/10">
-        <div className="flex items-start gap-2">
-          <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-          <p className="text-xs text-muted-foreground">
-            Extract values from responses and save them as variables for use in other requests.
-            Use dot notation for nested values (e.g., <code className="bg-background px-1 rounded">data.user.id</code>).
-          </p>
-        </div>
-      </div>
-
-      {/* Extractors List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {extractors.map((extractor, idx) => (
-          <div key={idx} className="flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-muted/10">
-            <Input
-              placeholder="Variable name"
-              value={extractor.name}
-              onChange={(e) => updateExtractor(idx, 'name', e.target.value)}
-              className="flex-1 h-8 text-sm"
-            />
-            <Input
-              placeholder="Path (e.g., data.id)"
-              value={extractor.path}
-              onChange={(e) => updateExtractor(idx, 'path', e.target.value)}
-              className="flex-1 h-8 text-sm font-mono"
-            />
-            <select
-              value={extractor.scope}
-              onChange={(e) => updateExtractor(idx, 'scope', e.target.value)}
-              className="h-8 px-2 text-sm bg-background border border-border/50 rounded-md"
-            >
-              <option value="environment">Environment</option>
-              <option value="local">Local</option>
-              <option value="global">Global</option>
-            </select>
-
-            {/* Preview result */}
-            {previewResult && previewResult[idx] && (
-              <Badge
-                variant={previewResult[idx].found ? "default" : "secondary"}
-                className={previewResult[idx].found ? "bg-emerald-500/20 text-emerald-600" : "bg-destructive/20 text-destructive"}
+    <motion.div
+      className="flex flex-col h-full"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Header with gradient */}
+      <motion.div
+        className="relative overflow-hidden"
+        variants={itemVariants}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-orange-500/10" />
+        <div className="relative px-4 py-3 border-b border-border/50 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <motion.div
+                animate={{ rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
               >
-                {previewResult[idx].found
-                  ? `${previewResult[idx].value?.substring(0, 20)}${previewResult[idx].value?.length > 20 ? '...' : ''}`
-                  : 'Not found'
-                }
-              </Badge>
-            )}
-
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8 text-destructive hover:text-destructive"
-              onClick={() => removeExtractor(idx)}
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
+                <Link2 className="h-5 w-5 text-purple-500" />
+              </motion.div>
+              <div>
+                <span className="text-sm font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  Request Chaining
+                </span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {extractedCount > 0 ? (
+                    <motion.div
+                      key={extractedCount}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="flex items-center gap-1 text-[10px] text-emerald-400"
+                    >
+                      <CheckCircle2 className="h-3 w-3" />
+                      {extractedCount} variable{extractedCount > 1 ? 's' : ''} extracted
+                    </motion.div>
+                  ) : hasResponse ? (
+                    <span className="text-[10px] text-emerald-400">Response ready</span>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">Send a request first</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <AnimatePresence>
+              {hasResponse && (
+                <motion.div
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                >
+                  <Badge className="text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/20 gap-1">
+                    <Target className="h-3 w-3" />
+                    Ready
+                  </Badge>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
-        ))}
+        </div>
+      </motion.div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={addExtractor}
-          className="w-full gap-2"
-        >
-          <Plus className="h-3 w-3" />
-          Add Extraction
-        </Button>
-      </div>
+      {/* Instructions with enhanced styling */}
+      <motion.div
+        className="px-4 py-3 bg-gradient-to-r from-purple-500/5 to-pink-500/5 border-b border-purple-500/10"
+        variants={itemVariants}
+      >
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-lg bg-purple-500/10">
+            <Info className="h-4 w-4 text-purple-400" />
+          </div>
+          <div className="flex-1">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Extract values from responses to use in subsequent requests.
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Use <span className="text-purple-400 font-mono">dot.notation</span> for nested values.
+            </p>
+          </div>
+        </div>
+      </motion.div>
 
-      {/* Templates */}
-      <div className="px-4 py-2 border-t border-border/50">
-        <Button
-          variant="ghost"
-          size="sm"
+      {/* Extractors List with enhanced animations */}
+      <motion.div
+        className="flex-1 overflow-y-auto p-4 space-y-3"
+        variants={itemVariants}
+      >
+        <AnimatePresence mode="popLayout">
+          {extractors.map((extractor, idx) => (
+            <motion.div
+              key={idx}
+              layout
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9, height: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 24 }}
+              className="relative group"
+            >
+              {/* Scope indicator border */}
+              <div className={`absolute left-0 top-2 bottom-2 w-1 rounded-full ${scopeConfig[extractor.scope]?.bg || scopeConfig.environment.bg}`} />
+
+              <div className="flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-muted/10 ml-3 hover:border-border/80 transition-colors">
+                <Input
+                  placeholder="variable_name"
+                  value={extractor.name}
+                  onChange={(e) => updateExtractor(idx, 'name', e.target.value)}
+                  className="flex-1 h-9 text-sm bg-background/50"
+                />
+                <div className="flex items-center gap-2 flex-1">
+                  <span className="text-muted-foreground text-xs">$</span>
+                  <Input
+                    placeholder="data.user.id"
+                    value={extractor.path}
+                    onChange={(e) => updateExtractor(idx, 'path', e.target.value)}
+                    className="flex-1 h-9 text-sm font-mono bg-background/50"
+                  />
+                </div>
+
+                {/* Animated scope selector */}
+                <motion.select
+                  value={extractor.scope}
+                  onChange={(e) => updateExtractor(idx, 'scope', e.target.value)}
+                  className={`h-9 px-3 text-sm rounded-md border cursor-pointer transition-colors ${
+                    scopeConfig[extractor.scope]?.bg || scopeConfig.environment.bg
+                  } ${scopeConfig[extractor.scope]?.border || scopeConfig.environment.border} ${
+                    scopeConfig[extractor.scope]?.color || scopeConfig.environment.color
+                  }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <option value="environment">Environment</option>
+                  <option value="local">Local</option>
+                  <option value="global">Global</option>
+                </motion.select>
+
+                {/* Live preview with animation */}
+                <AnimatePresence>
+                  {previewResult && previewResult[idx] && extractor.name && extractor.path && (
+                    <motion.div
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                    >
+                      <Badge
+                        variant={previewResult[idx].found ? "default" : "secondary"}
+                        className={`gap-1 ${
+                          previewResult[idx].found
+                            ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                            : "bg-destructive/20 text-destructive border-destructive/30"
+                        }`}
+                      >
+                        {previewResult[idx].found ? (
+                          <>
+                            <CheckCircle2 className="h-3 w-3" />
+                            {previewResult[idx].value?.substring(0, 15)}
+                            {previewResult[idx].value?.length > 15 ? '...' : ''}
+                          </>
+                        ) : (
+                          <>—</>
+                        )}
+                      </Badge>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => removeExtractor(idx)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </motion.div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {/* Add button with animation */}
+        <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addExtractor}
+            className="w-full gap-2 border-dashed"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Extraction Rule
+          </Button>
+        </motion.div>
+      </motion.div>
+
+      {/* Templates section */}
+      <motion.div
+        className="px-4 py-2 border-t border-border/50"
+        variants={itemVariants}
+      >
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.99 }}
           onClick={() => setShowTemplates(!showTemplates)}
-          className="w-full text-xs text-muted-foreground"
+          className="w-full flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground py-2"
         >
+          <motion.div
+            animate={{ rotate: showTemplates ? 180 : 0 }}
+            transition={{ type: "spring", stiffness: 200, damping: 20 }}
+          >
+            <ChevronDown className="h-4 w-4" />
+          </motion.div>
           {showTemplates ? 'Hide' : 'Show'} common templates
-        </Button>
+        </motion.button>
 
-        {showTemplates && (
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            {VARIABLE_TEMPLATES.map((template, idx) => (
-              <button
-                key={idx}
-                onClick={() => useTemplate(template)}
-                className="text-left p-2 text-xs rounded border border-border/30 hover:border-primary/30 hover:bg-primary/5 transition-colors"
-              >
-                <div className="font-medium">{template.name}</div>
-                <div className="text-muted-foreground font-mono text-[10px]">{template.path}</div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+        <AnimatePresence>
+          {showTemplates && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="pt-2 grid grid-cols-2 gap-2">
+                {VARIABLE_TEMPLATES.map((template, idx) => (
+                  <motion.div
+                    key={idx}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => useTemplate(template)}
+                    className="text-left p-3 text-xs rounded-lg border border-border/30 hover:border-purple-500/30 hover:bg-purple-500/5 cursor-pointer transition-all"
+                  >
+                    <div className="flex items-center gap-2 font-medium">
+                      <Sparkles className="h-3 w-3 text-purple-400" />
+                      {template.name}
+                    </div>
+                    <div className="text-muted-foreground font-mono text-[10px] mt-1 bg-background/50 rounded px-1.5 py-0.5">
+                      {template.path}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
 
-      {/* Generated Script */}
-      <div className="px-4 py-2 border-t border-border/50 bg-muted/20">
-        <details className="text-xs">
-          <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
-            View generated Postman-compatible script
+      {/* Generated Script Preview */}
+      <motion.div
+        className="px-4 py-2 border-t border-border/50 bg-muted/20"
+        variants={itemVariants}
+      >
+        <details
+          open={showScript}
+          onToggle={(e) => setShowScript(e.target.open)}
+          className="text-xs"
+        >
+          <summary className="cursor-pointer text-muted-foreground hover:text-foreground flex items-center gap-2 select-none">
+            <Code2 className="h-3.5 w-3.5" />
+            Generated Postman-compatible script
           </summary>
-          <pre className="mt-2 p-2 bg-background rounded border border-border/30 overflow-x-auto">
-            <code>{generateTestScript() || '// Add extractors to generate script'}</code>
-          </pre>
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-2"
+          >
+            <pre className="p-3 bg-background rounded-lg border border-border/30 overflow-x-auto text-xs">
+              <code className="text-muted-foreground">{generateTestScript() || '// Add extraction rules to generate script'}</code>
+            </pre>
+          </motion.div>
         </details>
-      </div>
+      </motion.div>
 
-      {/* Footer */}
-      <div className="px-4 py-3 border-t border-border/50 bg-muted/20 flex items-center justify-between">
+      {/* Footer Actions */}
+      <motion.div
+        className="px-4 py-3 border-t border-border/50 bg-muted/20 flex items-center justify-between"
+        variants={itemVariants}
+      >
         <p className="text-xs text-muted-foreground">
-          {hasResponse ? 'Response ready for extraction' : 'Send a request first'}
+          {hasResponse ? (
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              Response available
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
+              Send a request first
+            </span>
+          )}
         </p>
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setExtractors([{ name: '', path: '', scope: 'environment' }])}
-          >
-            Clear
-          </Button>
-          <Button
-            size="sm"
-            onClick={applyExtractions}
-            disabled={!hasResponse || !extractors.some(e => e.name && e.path)}
-            className="gap-2"
-          >
-            <Play className="h-3 w-3" />
-            Extract Variables
-          </Button>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setExtractors([{ name: '', path: '', scope: 'environment' }])}
+            >
+              Clear All
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              size="sm"
+              onClick={applyExtractions}
+              disabled={!hasResponse || !extractors.some(e => e.name && e.path)}
+              className="gap-2"
+            >
+              <Play className="h-3.5 w-3.5" />
+              Extract Variables
+            </Button>
+          </motion.div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }

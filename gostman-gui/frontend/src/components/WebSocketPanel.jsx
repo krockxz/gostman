@@ -1,13 +1,48 @@
 import React, { useState, useEffect, useRef } from "react"
-import { Plug, Unplug, Send, Trash2, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Plug, Unplug, Send, Trash2, Clock, CheckCircle, XCircle, AlertCircle, Radio, Waves, Zap, Copy } from "lucide-react"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Textarea } from "./ui/textarea"
 import { Input } from "./ui/input"
 
+// Animation variants
+const messageVariants = {
+  hidden: { opacity: 0, x: -20, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    transition: { type: "spring", stiffness: 300, damping: 24 }
+  },
+  exit: { opacity: 0, scale: 0.9, transition: { duration: 0.2 } }
+}
+
+const pulseGlow = {
+  boxShadow: [
+    '0 0 0 0px rgba(34, 211, 238, 0.4)',
+    '0 0 0 10px rgba(34, 211, 238, 0)',
+    '0 0 0 0px rgba(34, 211, 238, 0.4)',
+  ],
+  transition: {
+    duration: 2,
+    repeat: Infinity,
+  }
+}
+
+const waveAnimation = {
+  scale: [1, 1.1, 1],
+  opacity: [0.5, 1, 0.5],
+  transition: {
+    duration: 1.5,
+    repeat: Infinity,
+    ease: "easeInOut"
+  }
+}
+
 /**
- * WebSocket Testing Panel
- * Allows testing WebSocket connections with real-time messaging
+ * WebSocket Testing Panel with Enhanced Visuals
+ * Allows testing WebSocket connections with real-time messaging and animations
  */
 
 const ConnectionState = {
@@ -15,6 +50,42 @@ const ConnectionState = {
   CONNECTING: 'connecting',
   CONNECTED: 'connected',
   ERROR: 'error'
+}
+
+// Status configurations with enhanced visuals
+const StatusConfig = {
+  [ConnectionState.DISCONNECTED]: {
+    icon: Unplug,
+    label: 'Disconnected',
+    color: 'text-muted-foreground',
+    bg: 'bg-muted',
+    border: 'border-border/50',
+    glow: null
+  },
+  [ConnectionState.CONNECTING]: {
+    icon: Clock,
+    label: 'Connecting...',
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20',
+    glow: 'shadow-lg shadow-blue-500/20'
+  },
+  [ConnectionState.CONNECTED]: {
+    icon: Radio,
+    label: 'Connected',
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/20',
+    glow: 'shadow-lg shadow-emerald-500/20'
+  },
+  [ConnectionState.ERROR]: {
+    icon: XCircle,
+    label: 'Error',
+    color: 'text-destructive',
+    bg: 'bg-destructive/10',
+    border: 'border-destructive/20',
+    glow: 'shadow-lg shadow-destructive/20'
+  }
 }
 
 export function WebSocketPanel({
@@ -26,6 +97,7 @@ export function WebSocketPanel({
   const [message, setMessage] = useState('')
   const [messages, setMessages] = useState([])
   const [autoReconnect, setAutoReconnect] = useState(false)
+  const [copiedMessage, setCopiedMessage] = useState(null)
   const wsRef = useRef(null)
   const reconnectTimeoutRef = useRef(null)
   const messagesEndRef = useRef(null)
@@ -175,160 +247,340 @@ export function WebSocketPanel({
     setMessages([])
   }
 
-  const getStatusBadge = () => {
-    switch (state) {
-      case ConnectionState.CONNECTED:
-        return (
-          <Badge className="gap-1 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-            <CheckCircle className="h-3 w-3" />
-            Connected
-          </Badge>
-        )
-      case ConnectionState.CONNECTING:
-        return (
-          <Badge className="gap-1 bg-blue-500/10 text-blue-400 border-blue-500/20">
-            <Clock className="h-3 w-3 animate-pulse" />
-            Connecting...
-          </Badge>
-        )
-      case ConnectionState.ERROR:
-        return (
-          <Badge className="gap-1 bg-destructive/10 text-destructive border-destructive/20">
-            <XCircle className="h-3 w-3" />
-            Error
-          </Badge>
-        )
-      default:
-        return (
-          <Badge className="gap-1 bg-muted text-muted-foreground">
-            <Unplug className="h-3 w-3" />
-            Disconnected
-          </Badge>
-        )
-    }
+  const copyMessage = (content, id) => {
+    navigator.clipboard.writeText(content)
+    setCopiedMessage(id)
+    setTimeout(() => setCopiedMessage(null), 2000)
   }
 
   const formatTime = (date) => {
     return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' })
   }
 
+  const statusConfig = StatusConfig[state]
+  const StatusIcon = statusConfig.icon
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-muted/20">
-        <div className="flex items-center gap-3">
-          <Plug className="h-4 w-4 text-cyan-500" />
-          <span className="text-sm font-medium">WebSocket</span>
-          {getStatusBadge()}
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 text-xs text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={autoReconnect}
-              onChange={(e) => setAutoReconnect(e.target.checked)}
-              className="rounded"
-            />
-            Auto-reconnect
-          </label>
-        </div>
-      </div>
-
-      {/* URL Input */}
-      <div className="px-4 py-3 border-b border-border/50">
-        <div className="flex items-center gap-2">
-          <Input
-            value={url}
-            onChange={(e) => onUrlChange(e.target.value)}
-            placeholder="wss://echo.websocket.org"
-            className="flex-1 font-mono text-sm"
-            disabled={state === ConnectionState.CONNECTED || state === ConnectionState.CONNECTING}
+    <motion.div
+      className="flex flex-col h-full"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      {/* Enhanced Header with gradient and glow */}
+      <motion.div
+        className="relative overflow-hidden"
+        initial={{ y: -10, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 300, damping: 24 }}
+      >
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/10 via-blue-500/10 to-purple-500/10" />
+        {state === ConnectionState.CONNECTED && (
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-emerald-500/5 to-cyan-500/5"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
           />
-          {state === ConnectionState.CONNECTED || state === ConnectionState.CONNECTING ? (
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={disconnect}
-              className="gap-2"
-            >
-              <Unplug className="h-4 w-4" />
-              Disconnect
-            </Button>
-          ) : (
-            <Button
-              size="sm"
-              onClick={connect}
-              className="gap-2"
-            >
-              <Plug className="h-4 w-4" />
-              Connect
-            </Button>
-          )}
-        </div>
-      </div>
+        )}
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-background">
-        {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-            <div className="text-center">
-              <Plug className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No messages yet</p>
-              <p className="text-xs mt-1">Connect to a WebSocket server to begin</p>
+        <div className="relative px-4 py-3 border-b border-border/50 bg-muted/20">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {/* Animated icon */}
+              <motion.div
+                className="relative"
+                animate={state === ConnectionState.CONNECTED ? waveAnimation : {}}
+              >
+                {state === ConnectionState.CONNECTED ? (
+                  <>
+                    <motion.div
+                      className="absolute inset-0 rounded-full bg-emerald-500/30 blur-md"
+                      animate={pulseGlow}
+                    />
+                    <Radio className="h-5 w-5 text-emerald-400 relative z-10" />
+                  </>
+                ) : (
+                  <Plug className="h-5 w-5 text-cyan-500" />
+                )}
+              </motion.div>
+
+              <div>
+                <span className="text-sm font-semibold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+                  WebSocket
+                </span>
+                {/* Animated connection status */}
+                <motion.div
+                  key={state}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className={`flex items-center gap-1.5 mt-0.5 ${statusConfig.color}`}
+                >
+                  {state === ConnectionState.CONNECTED && (
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ duration: 1, repeat: Infinity }}
+                      className="w-1.5 h-1.5 rounded-full bg-emerald-400"
+                    />
+                  )}
+                  {state === ConnectionState.CONNECTING && (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    >
+                      <Clock className="h-3 w-3" />
+                    </motion.div>
+                  )}
+                  {state !== ConnectionState.CONNECTED && state !== ConnectionState.CONNECTING && (
+                    <StatusIcon className="h-3 w-3" />
+                  )}
+                  <span className="text-[10px] font-medium">{statusConfig.label}</span>
+                </motion.div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Auto-reconnect toggle with animation */}
+              <motion.label
+                className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer px-2 py-1 rounded-md hover:bg-muted/30 transition-colors"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <motion.div
+                  className="relative"
+                  animate={autoReconnect ? { backgroundColor: ['hsl(var(--primary))'] } : {}}
+                >
+                  <input
+                    type="checkbox"
+                    checked={autoReconnect}
+                    onChange={(e) => setAutoReconnect(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div className={`w-8 h-4 rounded-full transition-colors ${autoReconnect ? 'bg-primary' : 'bg-muted'}`}>
+                    <motion.div
+                      className="w-3 h-3 rounded-full bg-white shadow-sm mt-0.5"
+                      animate={{ x: autoReconnect ? 16 : 2 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    />
+                  </div>
+                </motion.div>
+                <span className="text-[10px] uppercase tracking-wide">Auto-reconnect</span>
+              </motion.label>
             </div>
           </div>
-        ) : (
-          <>
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`
-                  flex gap-2 p-3 rounded-lg text-sm
-                  ${msg.direction === 'sent' ? 'bg-primary/10 ml-8' : ''}
-                  ${msg.direction === 'received' ? 'bg-muted/50 mr-8' : ''}
-                  ${msg.direction === 'system' ? 'bg-muted/30 border border-border/50' : ''}
-                `}
+        </div>
+      </motion.div>
+
+      {/* URL Input with enhanced styling */}
+      <motion.div
+        className="px-4 py-3 border-b border-border/50"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+      >
+        <div className="flex items-center gap-2">
+          <div className="flex-1 relative">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-mono">
+              ws://
+            </div>
+            <Input
+              value={url}
+              onChange={(e) => onUrlChange(e.target.value)}
+              placeholder="echo.websocket.org"
+              className="pl-10 font-mono text-sm bg-background/50 backdrop-blur-sm border-border/50 focus:border-cyan-500/50"
+              disabled={state === ConnectionState.CONNECTED || state === ConnectionState.CONNECTING}
+            />
+          </div>
+          <AnimatePresence mode="wait">
+            {state === ConnectionState.CONNECTED || state === ConnectionState.CONNECTING ? (
+              <motion.div
+                key="disconnect"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
               >
-                <div className="shrink-0 pt-0.5">
-                  {msg.direction === 'sent' && <Send className="h-3.5 w-3.5 text-primary" />}
-                  {msg.direction === 'received' && <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />}
-                  {msg.direction === 'system' && (
-                    msg.type === 'error' ? <XCircle className="h-3.5 w-3.5 text-destructive" /> :
-                    msg.type === 'success' ? <CheckCircle className="h-3.5 w-3.5 text-emerald-500" /> :
-                    <AlertCircle className="h-3.5 w-3.5 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className={`
-                      text-xs font-medium uppercase
-                      ${msg.direction === 'sent' ? 'text-primary' : ''}
-                      ${msg.direction === 'received' ? 'text-emerald-500' : ''}
-                      ${msg.direction === 'system' ? 'text-muted-foreground' : ''}
-                    `}>
-                      {msg.direction === 'sent' ? 'SENT' : msg.direction === 'received' ? 'RECEIVED' : 'SYSTEM'}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{formatTime(msg.timestamp)}</span>
-                  </div>
-                  <pre className="text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto">
-                    {msg.content}
-                  </pre>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={disconnect}
+                  className="gap-2"
+                >
+                  <Unplug className="h-4 w-4" />
+                  Disconnect
+                </Button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="connect"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+              >
+                <Button
+                  size="sm"
+                  onClick={connect}
+                  className="gap-2"
+                >
+                  <Plug className="h-4 w-4" />
+                  Connect
+                </Button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+
+      {/* Messages with enhanced animations */}
+      <motion.div
+        className="flex-1 overflow-y-auto p-4 space-y-2 bg-background"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
+        <AnimatePresence mode="popLayout">
+          {messages.length === 0 ? (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="flex items-center justify-center h-full text-muted-foreground text-sm"
+            >
+              <div className="text-center">
+                <motion.div
+                  animate={{ y: [0, -10, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Waves className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                </motion.div>
+                <p className="text-sm font-medium">Ready to connect</p>
+                <p className="text-xs mt-1 text-muted-foreground">Enter a WebSocket URL to begin messaging</p>
+                <div className="mt-4 inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-muted/50 border border-border/30 text-xs font-mono">
+                  <span className="text-muted-foreground">Try:</span>
+                  <span className="text-cyan-400">wss://echo.websocket.org</span>
                 </div>
               </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </>
-        )}
-      </div>
+            </motion.div>
+          ) : (
+            <>
+              {messages.map((msg, idx) => (
+                <motion.div
+                  key={msg.id}
+                  layout
+                  variants={messageVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="exit"
+                  transition={{ delay: idx * 0.03 }}
+                  className={`
+                    relative group flex gap-3 p-3 rounded-lg text-sm border
+                    ${msg.direction === 'sent'
+                      ? 'bg-gradient-to-r from-primary/10 to-primary/5 ml-8 border-primary/10'
+                      : msg.direction === 'received'
+                        ? 'bg-gradient-to-r from-emerald-500/10 to-emerald-500/5 mr-8 border-emerald-500/10'
+                        : 'bg-muted/20 border-border/50'
+                    }
+                  `}
+                >
+                  {/* Direction indicator */}
+                  <div className="shrink-0 pt-0.5">
+                    {msg.direction === 'sent' && (
+                      <motion.div
+                        initial={{ rotate: -45 }}
+                        animate={{ rotate: 0 }}
+                        className="bg-primary/20 rounded p-1.5"
+                      >
+                        <Send className="h-3.5 w-3.5 text-primary" />
+                      </motion.div>
+                    )}
+                    {msg.direction === 'received' && (
+                      <motion.div
+                        initial={{ rotate: 45 }}
+                        animate={{ rotate: 0 }}
+                        className="bg-emerald-500/20 rounded p-1.5"
+                      >
+                        <CheckCircle className="h-3.5 w-3.5 text-emerald-400" />
+                      </motion.div>
+                    )}
+                    {msg.direction === 'system' && (
+                      <div className={`rounded p-1.5 ${
+                        msg.type === 'error' ? 'bg-destructive/20' :
+                          msg.type === 'success' ? 'bg-emerald-500/20' :
+                            'bg-muted/30'
+                      }`}>
+                        {msg.type === 'error' ? <XCircle className="h-3.5 w-3.5 text-destructive" /> :
+                          msg.type === 'success' ? <CheckCircle className="h-3.5 w-3.5 text-emerald-500" /> :
+                            <AlertCircle className="h-3.5 w-3.5 text-muted-foreground" />
+                        }
+                      </div>
+                    )}
+                  </div>
 
-      {/* Message Input */}
-      <div className="border-t border-border/50 p-4 bg-muted/20">
-        <div className="flex gap-2 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className={`
+                        text-[10px] font-bold uppercase tracking-wider
+                        ${msg.direction === 'sent' ? 'text-primary' : ''}
+                        ${msg.direction === 'received' ? 'text-emerald-400' : ''}
+                        ${msg.direction === 'system' ? 'text-muted-foreground' : ''}
+                      `}>
+                        {msg.direction === 'sent' ? 'SENT' : msg.direction === 'received' ? 'RECEIVED' : 'SYSTEM'}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground font-mono">
+                          {formatTime(msg.timestamp)}
+                        </span>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => copyMessage(msg.content, msg.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          {copiedMessage === msg.id ? (
+                            <CheckCircle className="h-3 w-3 text-emerald-400" />
+                          ) : (
+                            <Copy className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                          )}
+                        </motion.button>
+                      </div>
+                    </div>
+                    <pre className="text-xs font-mono whitespace-pre-wrap break-words overflow-x-auto bg-background/30 rounded p-2 border border-border/20">
+                      {msg.content}
+                    </pre>
+                  </div>
+
+                  {/* Gradient glow on hover */}
+                  {msg.direction === 'sent' && (
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity -z-10 blur-sm" />
+                  )}
+                  {msg.direction === 'received' && (
+                    <div className="absolute -inset-0.5 bg-gradient-to-l from-emerald-500/20 to-transparent rounded-lg opacity-0 group-hover:opacity-100 transition-opacity -z-10 blur-sm" />
+                  )}
+                </motion.div>
+              ))}
+              <div ref={messagesEndRef} />
+            </>
+          )}
+        </AnimatePresence>
+      </motion.div>
+
+      {/* Message Input with enhanced styling */}
+      <motion.div
+        className="border-t border-border/50 p-4 bg-gradient-to-t from-muted/30 to-transparent"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <div className="relative">
           <Textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder='{{"action": "ping"}'
-            className="flex-1 h-20 font-mono text-sm resize-none"
+            className={`flex-1 h-20 font-mono text-sm resize-none bg-background/50 backdrop-blur-sm border-border/50 transition-all ${
+              state === ConnectionState.CONNECTED
+                ? 'focus:border-cyan-500/50 focus:ring-2 focus:ring-cyan-500/10'
+                : 'opacity-50 cursor-not-allowed'
+            }`}
             disabled={state !== ConnectionState.CONNECTED}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -336,34 +588,50 @@ export function WebSocketPanel({
               }
             }}
           />
+          {/* Character count */}
+          <motion.div
+            className="absolute bottom-2 right-2 text-[10px] text-muted-foreground"
+            animate={{ opacity: message.length > 0 ? 1 : 0 }}
+          >
+            {message.length} chars
+          </motion.div>
         </div>
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
-            Press Ctrl+Enter to send
-          </p>
+
+        <div className="flex items-center justify-between mt-3">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/30 font-mono text-[10px]">Ctrl</kbd>
+            <span>+</span>
+            <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/30 font-mono text-[10px]">Enter</kbd>
+            <span className="ml-1">to send</span>
+          </div>
           <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={clearMessages}
-              disabled={messages.length === 0}
-            >
-              <Trash2 className="h-3 w-3 mr-1" />
-              Clear
-            </Button>
-            <Button
-              size="sm"
-              onClick={send}
-              disabled={state !== ConnectionState.CONNECTED || !message.trim()}
-              className="gap-2"
-            >
-              <Send className="h-3 w-3" />
-              Send
-            </Button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={clearMessages}
+                disabled={messages.length === 0}
+                className="gap-1.5"
+              >
+                <Trash2 className="h-3 w-3" />
+                Clear
+              </Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                size="sm"
+                onClick={send}
+                disabled={state !== ConnectionState.CONNECTED || !message.trim()}
+                className="gap-2"
+              >
+                <Send className="h-3 w-3" />
+                Send
+              </Button>
+            </motion.div>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
