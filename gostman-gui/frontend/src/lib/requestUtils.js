@@ -1,8 +1,10 @@
 import { substitute } from "./variables"
+import qs from 'qs'
 
 /**
  * Prepares the request data for fetching.
  * Handles variable substitution, header parsing, and URL construction.
+ * Uses qs for query string handling.
  */
 export function prepareRequest(activeRequest, variablesMap) {
     const finalUrl = substitute(activeRequest.url, variablesMap)
@@ -21,11 +23,8 @@ export function prepareRequest(activeRequest, variablesMap) {
     try {
         const queryObj = JSON.parse(finalQueryParams || "{}")
         if (Object.keys(queryObj).length > 0) {
-            const searchParams = new URLSearchParams()
-            Object.entries(queryObj).forEach(([key, value]) => {
-                searchParams.append(key, String(value))
-            })
-            fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + searchParams.toString()
+            const queryString = qs.stringify(queryObj, { arrayFormat: 'brackets' })
+            fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + queryString
         }
     } catch (e) {
         console.error("Failed to parse query params", e)
@@ -36,7 +35,6 @@ export function prepareRequest(activeRequest, variablesMap) {
         method: activeRequest.method,
         headers: headersObj,
         body: ["POST", "PUT", "PATCH"].includes(activeRequest.method) ? finalBody : undefined,
-        // Return substituted values if needed for UI updates (though we usually keep user input)
     }
 }
 

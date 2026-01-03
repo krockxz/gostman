@@ -3,7 +3,7 @@ import { LandingPage } from "./components/LandingPage"
 import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
 import { ResponsePanel } from "./components/ResponsePanel"
-import { Textarea } from "./components/ui/textarea"
+import { MonacoEditor } from "./components/MonacoEditor"
 import { Button } from "./components/ui/button"
 import { ArrowLeft, RotateCcw, Import, Loader2 } from "lucide-react"
 import { RequestTabs } from "./components/RequestTabs"
@@ -313,7 +313,7 @@ function WebApp() {
               response={activeRequest.response}
               responseStatus={status}
               responseHeaders={activeRequest.responseHeaders}
-              EditorComponent={Textarea}
+              EditorComponent={MonacoEditor}
             />
 
             <ResponsePanel

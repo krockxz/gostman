@@ -7,7 +7,7 @@ import { ResponsePanel } from "./components/ResponsePanel"
 // Lazy load heavy dialogs
 const CodeSnippetDialog = lazy(() => import("./components/CodeSnippetDialog").then(module => ({ default: module.CodeSnippetDialog })))
 const ImportExportDialog = lazy(() => import("./components/ImportExportDialog").then(module => ({ default: module.ImportExportDialog })))
-import { Textarea } from "./components/ui/textarea"
+import { MonacoEditor } from "./components/MonacoEditor"
 import { TabBar } from "./components/TabBar"
 import { Button } from "./components/ui/button"
 import { RequestTabs } from "./components/RequestTabs"
@@ -311,7 +311,7 @@ function App() {
               response={activeRequest.response || ''}
               responseStatus={activeTab?.status || ''}
               responseHeaders={null}
-              EditorComponent={Textarea}
+              EditorComponent={MonacoEditor}
             />
 
             <ResponsePanel

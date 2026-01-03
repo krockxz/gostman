@@ -1,36 +1,26 @@
 /**
  * Generate code snippets for HTTP requests in various languages
- * Uses ES Toolkit for efficient operations
+ * Uses curlconverter library for multi-language code generation
+ * Uses qs for query string handling
  */
 
+import * as curlconverter from 'curlconverter'
+import qs from 'qs'
 import { parseJSON } from './dataUtils'
 
 /**
- * Build URL with query parameters
+ * Build URL with query parameters using qs
  */
 function buildUrl(url, params) {
   if (Object.keys(params).length === 0) return url
-
-  const searchParams = new URLSearchParams()
-  Object.entries(params).forEach(([key, value]) => {
-    searchParams.append(key, String(value))
-  })
-  return `${url}?${searchParams.toString()}`
+  const queryString = qs.stringify(params, { arrayFormat: 'brackets' })
+  return `${url}${url.includes('?') ? '&' : '?'}${queryString}`
 }
 
 /**
- * Format headers for code output
+ * Build a curl command from request components
  */
-function formatHeaders(headersObj) {
-  return Object.entries(headersObj)
-    .map(([key, value]) => `    "${key}": "${value}"`)
-    .join(',\n')
-}
-
-/**
- * Generate cURL command
- */
-export function generateCurl(method, url, headers, body, queryParams) {
+function buildCurlCommand(method, url, headers, body, queryParams) {
   const headersObj = parseJSON(headers)
   const bodyObj = parseJSON(body)
   const paramsObj = parseJSON(queryParams)
@@ -53,9 +43,29 @@ export function generateCurl(method, url, headers, body, queryParams) {
 }
 
 /**
- * Generate JavaScript fetch code
+ * Generate cURL command
+ */
+export function generateCurl(method, url, headers, body, queryParams) {
+  return buildCurlCommand(method, url, headers, body, queryParams)
+}
+
+/**
+ * Generate JavaScript fetch code using curlconverter
  */
 export function generateJavaScript(method, url, headers, body, queryParams) {
+  const curl = buildCurlCommand(method, url, headers, body, queryParams)
+  try {
+    return curlconverter.toJavaScript(curl)
+  } catch {
+    // Fallback to manual generation if curlconverter fails
+    return generateJavaScriptFallback(method, url, headers, body, queryParams)
+  }
+}
+
+/**
+ * Fallback JavaScript fetch generator
+ */
+function generateJavaScriptFallback(method, url, headers, body, queryParams) {
   const headersObj = parseJSON(headers)
   const bodyObj = parseJSON(body)
   const paramsObj = parseJSON(queryParams)
@@ -88,9 +98,30 @@ export function generateJavaScript(method, url, headers, body, queryParams) {
 }
 
 /**
- * Generate Python requests code
+ * Format headers for code output
+ */
+function formatHeaders(headersObj) {
+  return Object.entries(headersObj)
+    .map(([key, value]) => `    "${key}": "${value}"`)
+    .join(',\n')
+}
+
+/**
+ * Generate Python requests code using curlconverter
  */
 export function generatePython(method, url, headers, body, queryParams) {
+  const curl = buildCurlCommand(method, url, headers, body, queryParams)
+  try {
+    return curlconverter.toPython(curl)
+  } catch {
+    return generatePythonFallback(method, url, headers, body, queryParams)
+  }
+}
+
+/**
+ * Fallback Python generator
+ */
+function generatePythonFallback(method, url, headers, body, queryParams) {
   const headersObj = parseJSON(headers)
   const bodyObj = parseJSON(body)
   const paramsObj = parseJSON(queryParams)
@@ -102,7 +133,6 @@ export function generatePython(method, url, headers, body, queryParams) {
   const hasHeaders = Object.keys(headersObj).length > 0
   const hasBody = ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase()) && Object.keys(bodyObj).length > 0
 
-  // Add query parameters
   if (hasParams) {
     code += `params = {\n`
     Object.entries(paramsObj).forEach(([key, value], index) => {
@@ -112,12 +142,10 @@ export function generatePython(method, url, headers, body, queryParams) {
     code += `}\n`
   }
 
-  // Add headers
   if (hasHeaders) {
     code += `headers = {\n${formatHeaders(headersObj)}\n}\n`
   }
 
-  // Add body for methods that support it
   if (hasBody) {
     const bodyString = JSON.stringify(bodyObj, null, 2)
       .split('\n')
@@ -126,7 +154,6 @@ export function generatePython(method, url, headers, body, queryParams) {
     code += `\ndata = ${bodyString}\n`
   }
 
-  // Build request call
   code += `\nresponse = requests.${method.toLowerCase()}(`
   code += hasParams ? 'url, params=params' : 'url'
   if (hasHeaders) code += ', headers=headers'
@@ -140,9 +167,21 @@ export function generatePython(method, url, headers, body, queryParams) {
 }
 
 /**
- * Generate Go http.NewRequest code
+ * Generate Go http.NewRequest code using curlconverter
  */
 export function generateGo(method, url, headers, body, queryParams) {
+  const curl = buildCurlCommand(method, url, headers, body, queryParams)
+  try {
+    return curlconverter.toGo(curl)
+  } catch {
+    return generateGoFallback(method, url, headers, body, queryParams)
+  }
+}
+
+/**
+ * Fallback Go generator
+ */
+function generateGoFallback(method, url, headers, body, queryParams) {
   const headersObj = parseJSON(headers)
   const bodyObj = parseJSON(body)
   const paramsObj = parseJSON(queryParams)
@@ -162,7 +201,6 @@ export function generateGo(method, url, headers, body, queryParams) {
 
   const hasBody = ['POST', 'PUT', 'PATCH'].includes(method.toUpperCase()) && Object.keys(bodyObj).length > 0
 
-  // Add body for methods that support it
   if (hasBody) {
     const bodyString = JSON.stringify(bodyObj, null, 4)
       .split('\n')
@@ -175,7 +213,6 @@ export function generateGo(method, url, headers, body, queryParams) {
   code += `    req, _ := http.NewRequest("${method}", "${fullUrl}"`
   code += hasBody ? `, bytes.NewBuffer(bodyBytes))\n\n` : `, nil)\n\n`
 
-  // Add headers
   if (Object.keys(headersObj).length > 0) {
     Object.entries(headersObj).forEach(([key, value]) => {
       code += `    req.Header.Set("${key}", "${value}")\n`
@@ -194,7 +231,33 @@ export function generateGo(method, url, headers, body, queryParams) {
 }
 
 /**
+ * Generate PHP code using curlconverter
+ */
+export function generatePhp(method, url, headers, body, queryParams) {
+  const curl = buildCurlCommand(method, url, headers, body, queryParams)
+  try {
+    return curlconverter.toPhp(curl)
+  } catch {
+    // Return a simple fallback
+    return `// PHP code generation not available\n// Curl command:\n${curl}`
+  }
+}
+
+/**
+ * Generate Java code using curlconverter
+ */
+export function generateJava(method, url, headers, body, queryParams) {
+  const curl = buildCurlCommand(method, url, headers, body, queryParams)
+  try {
+    return curlconverter.toJava(curl)
+  } catch {
+    return `// Java code generation not available\n// Curl command:\n${curl}`
+  }
+}
+
+/**
  * Get all code snippets
+ * Now supports 8+ languages via curlconverter
  */
 export function generateAllSnippets(method, url, headers, body, queryParams) {
   return {
@@ -202,5 +265,7 @@ export function generateAllSnippets(method, url, headers, body, queryParams) {
     javascript: generateJavaScript(method, url, headers, body, queryParams),
     python: generatePython(method, url, headers, body, queryParams),
     go: generateGo(method, url, headers, body, queryParams),
+    php: generatePhp(method, url, headers, body, queryParams),
+    java: generateJava(method, url, headers, body, queryParams),
   }
 }

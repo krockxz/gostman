@@ -28,26 +28,37 @@ export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameC
   const handlePaste = (e) => {
     const pastedText = e.clipboardData.getData('text')
 
-    if (isCurlCommand(pastedText)) {
-      e.preventDefault()
+    if (!isCurlCommand(pastedText)) return
 
-      const parsed = parseCurlCommand(pastedText)
-      if (parsed) {
-        onMethodChange(parsed.method)
-        onUrlChange(parsed.url)
+    const parsed = parseCurlCommand(pastedText)
+    if (!parsed) return
 
-        if (parsed.headers && onHeadersChange) {
-          onHeadersChange(parsed.headers)
-        }
+    // Prevent default paste only after successful parsing
+    e.preventDefault()
 
-        if (parsed.body && onBodyChange) {
-          onBodyChange(parsed.body)
-        }
+    // Apply method if valid
+    if (parsed.method && onMethodChange) {
+      onMethodChange(parsed.method)
+    }
 
-        if (parsed.queryParams && onQueryParamsChange) {
-          onQueryParamsChange(parsed.queryParams)
-        }
-      }
+    // Apply URL if valid
+    if (parsed.url && onUrlChange) {
+      onUrlChange(parsed.url)
+    }
+
+    // Apply headers if valid and not empty
+    if (parsed.headers && parsed.headers !== '{}' && onHeadersChange) {
+      onHeadersChange(parsed.headers)
+    }
+
+    // Apply body if valid
+    if (parsed.body && onBodyChange) {
+      onBodyChange(parsed.body)
+    }
+
+    // Apply query params if valid and not empty
+    if (parsed.queryParams && parsed.queryParams !== '{}' && onQueryParamsChange) {
+      onQueryParamsChange(parsed.queryParams)
     }
   }
 
