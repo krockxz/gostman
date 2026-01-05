@@ -271,6 +271,21 @@ export function LandingPage({ onGetStarted }) {
               </Badge>
             </motion.div>
 
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25, duration: 0.8 }}
+              className="flex justify-center"
+            >
+              <a href="https://peerlist.io/kunalrc/project/gostman" target="_blank" rel="noreferrer">
+                <img
+                  src="https://peerlist.io/api/v1/projects/embed/PRJHA9EGOA6EQB87M3JRKKDPEO8D8M?showUpvote=true&theme=dark"
+                  alt="Gostman"
+                  style={{ width: "auto", height: "72px" }}
+                />
+              </a>
+            </motion.div>
+
             <motion.h1
               className="text-5xl md:text-6xl lg:text-7xl font-semibold tracking-tight leading-[1.1]"
               initial={{ opacity: 0, y: 20 }}
