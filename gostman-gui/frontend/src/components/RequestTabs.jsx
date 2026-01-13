@@ -21,7 +21,7 @@ export function RequestTabs({
 }) {
     return (
         <Tabs defaultValue="body" className="flex flex-1 flex-col">
-            <div className="border-b bg-muted/10 px-4 backdrop-blur-sm">
+            <div className="border-b border-border/60 bg-muted/10 px-4 backdrop-blur-md">
                 <TabsList>
                     <TabsTrigger value="body" icon={Braces}>Body</TabsTrigger>
                     <TabsTrigger value="graphql" icon={Zap}>GraphQL</TabsTrigger>
@@ -34,7 +34,7 @@ export function RequestTabs({
             </div>
 
             <div className="flex-1 overflow-hidden">
-                <TabsContent value="body" className="h-full p-0 m-0">
+                <TabsContent value="body" className="h-full p-0" noMargin>
                     <div className="h-full">
                         {/* Wrapper div might be needed depending on EditorComponent's height behavior */}
                         <EditorComponent
@@ -48,7 +48,7 @@ export function RequestTabs({
                     </div>
                 </TabsContent>
 
-                <TabsContent value="graphql" className="h-full p-0 m-0">
+                <TabsContent value="graphql" className="h-full p-0" noMargin>
                     <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Loading GraphQL Module...</div>}>
                         <GraphQLPanel
                             query={activeRequest.graphqlQuery || activeRequest.body || ''}
@@ -59,7 +59,7 @@ export function RequestTabs({
                     </Suspense>
                 </TabsContent>
 
-                <TabsContent value="websocket" className="h-full p-0 m-0">
+                <TabsContent value="websocket" className="h-full p-0" noMargin>
                     <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Loading WebSocket Module...</div>}>
                         <WebSocketPanel
                             url={activeRequest.wsUrl || activeRequest.url || ''}
@@ -69,7 +69,7 @@ export function RequestTabs({
                     </Suspense>
                 </TabsContent>
 
-                <TabsContent value="params" className="h-full p-0 m-0">
+                <TabsContent value="params" className="h-full p-0" noMargin>
                     <div className="h-full">
                         <EditorComponent
                             value={activeRequest.queryParams}
@@ -82,7 +82,7 @@ export function RequestTabs({
                     </div>
                 </TabsContent>
 
-                <TabsContent value="headers" className="h-full p-0 m-0">
+                <TabsContent value="headers" className="h-full p-0" noMargin>
                     <div className="h-full">
                         <EditorComponent
                             value={activeRequest.headers}
@@ -95,7 +95,7 @@ export function RequestTabs({
                     </div>
                 </TabsContent>
 
-                <TabsContent value="vars" className="h-full p-0 m-0">
+                <TabsContent value="vars" className="h-full p-0" noMargin>
                     {/* Vars tab is slightly complex due to the extra UI elements */}
                     {/* If EditorComponent is Textarea (WebApp), likely wrapped in ScrollArea?? */}
                     {/* Actually App.jsx uses Monaco directly in div. WebApp uses ScrollArea wrapper for Textarea. */}
@@ -129,7 +129,7 @@ export function RequestTabs({
                                 height="100%"
                             />
                         </div>
-                        <div className="border-t bg-muted/10 p-4">
+                        <div className="border-t border-border/60 bg-muted/10 p-4">
                             <div className="mb-3">
                                 <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                                     <FolderOpen className="h-4 w-4" />
@@ -147,7 +147,7 @@ export function RequestTabs({
                     </div>
                 </TabsContent>
 
-                <TabsContent value="test" className="h-full p-0 m-0">
+                <TabsContent value="test" className="h-full p-0" noMargin>
                     <TestScriptsPanel
                         response={activeRequest.response}
                         responseStatus={null}

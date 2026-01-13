@@ -33,9 +33,9 @@ export function ResponsePanel({ response, status, responseType = 'text', respons
   const hasPreview = responseType === 'html' || responseType === 'image'
 
   return (
-    <div className="flex h-[40%] flex-col border-t border-border/50 bg-muted/5">
+    <div className="flex h-[40%] flex-col border-t border-border/60 bg-muted/5">
       {/* Response Header */}
-      <div className="flex items-center justify-between border-b border-border/50 bg-muted/20 px-4 py-2.5 backdrop-blur-sm">
+      <div className="flex items-center justify-between border-b border-border/60 bg-muted/20 px-4 py-2.5 backdrop-blur-md">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold">Response</span>
@@ -84,7 +84,7 @@ export function ResponsePanel({ response, status, responseType = 'text', respons
         )}
 
         {activeTab === 'preview' && (
-          <div className="h-full w-full bg-white text-black overflow-auto">
+          <div className="h-full w-full bg-white text-black dark:bg-zinc-900 dark:text-zinc-100 overflow-auto">
             {responseType === 'html' && (
               <iframe
                 srcDoc={response}

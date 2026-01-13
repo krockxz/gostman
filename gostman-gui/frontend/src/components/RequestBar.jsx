@@ -63,15 +63,14 @@ export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameC
   }
 
   return (
-    <div className="border-b border-border/50 bg-muted/20 backdrop-blur-sm">
+    <div className="border-b border-border/60 bg-muted/20 backdrop-blur-md">
       <div className="flex items-center gap-3 px-4 py-3">
         {/* Method Selector */}
         <div className="relative">
           <Select
             value={activeRequest.method}
             onChange={(e) => onMethodChange(e.target.value)}
-            className="w-24 font-mono text-sm"
-            style={{ color: METHOD_COLORS[activeRequest.method] }}
+            className={`w-24 font-mono text-sm ${METHOD_COLORS[activeRequest.method] || ''}`}
           >
             {HTTP_METHODS.map((method) => (
               <option key={method} value={method}>
@@ -148,7 +147,7 @@ export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameC
       </div>
 
       {/* Keyboard shortcuts bar */}
-      <div className="flex items-center justify-between border-t px-4 py-1.5 text-xs text-muted-foreground/70">
+      <div className="flex items-center justify-between border-t border-border/60 px-4 py-1.5 text-xs text-muted-foreground/70">
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1">
             <kbd>Ctrl</kbd>+<kbd>Enter</kbd> Send

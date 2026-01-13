@@ -45,7 +45,7 @@ const TabsTrigger = React.forwardRef(({ className, value, children, icon: Icon }
       ref={ref}
       onClick={() => setValue(value)}
       className={cn(
-        "inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center gap-2 whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium transition-all duration-200 transition-shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50",
         isActive
           ? "bg-background text-foreground shadow-md"
           : "text-muted-foreground hover:bg-background/50 hover:text-foreground",
@@ -59,7 +59,7 @@ const TabsTrigger = React.forwardRef(({ className, value, children, icon: Icon }
 })
 TabsTrigger.displayName = "TabsTrigger"
 
-const TabsContent = React.forwardRef(({ className, value, children }, ref) => {
+const TabsContent = React.forwardRef(({ className, value, children, noMargin }, ref) => {
   const { value: currentValue } = React.useContext(TabsContext)
 
   if (currentValue !== value) return null
@@ -68,7 +68,8 @@ const TabsContent = React.forwardRef(({ className, value, children }, ref) => {
     <div
       ref={ref}
       className={cn(
-        "mt-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        !noMargin && "mt-2",
         className
       )}
     >

@@ -23,7 +23,7 @@ export const TabBar = memo(function TabBar({ tabs, activeTabId, onTabSelect, onT
                     key={tab.id}
                     layout
                     className={cn(
-                        'group flex items-center gap-2 rounded-t px-3 py-1.5 text-sm cursor-pointer transition-colors min-w-[120px] max-w-[180px]',
+                        'group flex items-center gap-2 rounded-t px-3 py-1.5 text-sm cursor-pointer transition-colors min-w-[120px] max-w-[200px]',
                         activeTabId === tab.id
                             ? 'bg-background border-t border-x text-foreground'
                             : 'hover:bg-muted/50 text-muted-foreground'
@@ -40,7 +40,7 @@ export const TabBar = memo(function TabBar({ tabs, activeTabId, onTabSelect, onT
                     <button
                         className={cn(
                             'p-0.5 rounded hover:bg-muted-foreground/20 transition-opacity',
-                            activeTabId === tab.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                            activeTabId === tab.id ? 'opacity-100' : 'opacity-60 group-hover:opacity-100'
                         )}
                         onClick={(e) => {
                             e.stopPropagation()

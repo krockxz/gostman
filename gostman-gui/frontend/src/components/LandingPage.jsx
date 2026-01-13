@@ -212,8 +212,8 @@ export function LandingPage({ onGetStarted }) {
                 src={logo}
                 alt="Gostman Logo"
                 className="h-8 w-8 rounded-md"
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2 }}
               />
               <span className="font-medium text-sm">Gostman</span>
             </motion.div>
@@ -613,8 +613,8 @@ export function LandingPage({ onGetStarted }) {
                 src={logo}
                 alt="Gostman Logo"
                 className="h-8 w-8 rounded-md"
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2 }}
               />
               <div>
                 <span className="font-medium text-sm">Gostman</span>

@@ -65,7 +65,7 @@
 
   /* Monospace for code-like elements */
   .font-mono {
-    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
   }
 }
 
@@ -148,29 +148,8 @@
   }
 }
 
-/* Syntax highlighting colors for JSON (Shared by Tree and Raw views) */
+/* Scroll-triggered animations */
 @layer utilities {
-  .json-key {
-    color: hsl(191 96% 54%);
-  }
-
-  .json-string {
-    color: hsl(142 76% 56%);
-  }
-
-  .json-number {
-    color: hsl(25 95% 53%);
-  }
-
-  .json-boolean {
-    color: hsl(280 74% 64%);
-  }
-
-  .json-null {
-    color: hsl(0 84% 60%);
-  }
-
-  /* Scroll-triggered animations */
   .reveal-on-scroll {
     opacity: 0;
     transform: translateY(30px);
@@ -260,73 +239,8 @@
   animation: pulse-slow 4s ease-in-out infinite;
 }
 
-@keyframes pulse-slow-delayed {
-
-  0%,
-  100% {
-    opacity: 0.3;
-  }
-
-  50% {
-    opacity: 0.6;
-  }
-}
-
-.animate-pulse-slow {
-  animation: pulse-slow 4s ease-in-out infinite;
-}
-
 .animate-pulse-slow-delayed {
   animation: pulse-slow-delayed 5s ease-in-out infinite;
-}
-
-/* Animations that were previously in JS */
-@keyframes float {
-
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-20px);
-  }
-}
-
-@keyframes float-delayed {
-
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-30px);
-  }
-}
-
-@keyframes float-slow {
-
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-
-  50% {
-    transform: translateY(-15px);
-  }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
-}
-
-.animate-float-delayed {
-  animation: float-delayed 8s ease-in-out infinite;
-}
-
-.animate-float-slow {
-  animation: float-slow 10s ease-in-out infinite;
 }
 
 /* Custom styling for react-json-view-lite */

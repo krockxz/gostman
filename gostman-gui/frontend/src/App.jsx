@@ -223,7 +223,7 @@ function App() {
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       {/* Header */}
-      <header className="flex items-center justify-between border-b bg-muted/10 backdrop-blur-md px-6 py-3">
+      <header className="flex items-center justify-between border-b border-border/60 bg-muted/10 backdrop-blur-md px-6 py-2.5">
         <div className="flex items-center gap-3">
           <img src={logo} alt="Gostman Logo" className="h-9 w-9 rounded-lg shadow-lg shadow-primary/25" />
           <div>

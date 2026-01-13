@@ -22,18 +22,40 @@ function formatRelativeTime(isoString) {
   return date.toLocaleDateString()
 }
 
-const EmptyState = memo(({ icon: Icon, title, description, color = "primary" }) => (
-  <div className="flex h-full flex-col items-center justify-center p-8 text-center">
-    <div className="mb-4 relative">
-      <div className={`absolute inset-0 bg-${color}/10 rounded-full blur-xl scale-150 ${color === 'blue-500' ? 'animate-pulse' : ''}`} />
-      <div className={`relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-${color}/20 to-${color}/5 border border-${color}/10 shadow-lg shadow-${color}/5`}>
-        <Icon className={`h-7 w-7 text-${color}`} />
+const EmptyState = memo(({ icon: Icon, title, description, variant = "default" }) => {
+  const colorVariants = {
+    default: {
+      bg: "bg-primary/10",
+      gradient: "from-primary/20 to-primary/5",
+      border: "border-primary/10",
+      shadow: "shadow-primary/5",
+      text: "text-primary",
+      animate: false
+    },
+    blue: {
+      bg: "bg-blue-500/10",
+      gradient: "from-blue-500/20 to-blue-500/5",
+      border: "border-blue-500/10",
+      shadow: "shadow-blue-500/5",
+      text: "text-blue-400",
+      animate: true
+    }
+  }
+  const colors = colorVariants[variant] || colorVariants.default
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center p-8 text-center">
+      <div className="mb-4 relative">
+        <div className={`absolute inset-0 ${colors.bg} rounded-full blur-xl scale-150 ${colors.animate ? 'animate-pulse' : ''}`} />
+        <div className={`relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${colors.gradient} border ${colors.border} shadow-lg ${colors.shadow}`}>
+          <Icon className={`h-7 w-7 ${colors.text}`} />
+        </div>
       </div>
+      <p className="text-sm font-medium text-foreground mb-1">{title}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
     </div>
-    <p className="text-sm font-medium text-foreground mb-1">{title}</p>
-    <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
-  </div>
-))
+  )
+})
 
 export function Sidebar({
   requests = [],
@@ -76,9 +98,9 @@ export function Sidebar({
   const rootRequests = filteredRequests.filter(req => !req.folderId)
 
   return (
-    <div className="flex h-full w-64 flex-col border-r border-border/50 bg-gradient-to-b from-background via-background to-muted/20">
+    <div className="flex h-full w-64 flex-col border-r border-border/60 bg-gradient-to-b from-background via-background to-muted/20">
       {/* Toolbar */}
-      <div className="border-b border-border/50 px-4 py-2 flex items-center justify-between bg-muted/20">
+      <div className="border-b border-border/60 px-4 py-2 flex items-center justify-between bg-muted/20">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Explorer</span>
         <div className="flex items-center gap-1">
           <Button
@@ -104,7 +126,7 @@ export function Sidebar({
 
       {/* Tabs */}
       <Tabs defaultValue="collections" className="flex flex-1 flex-col">
-        <TabsList className={`grid ${hasHistoryFeatures ? 'grid-cols-2' : 'grid-cols-1'} rounded-none border-b border-border/50 bg-transparent p-0`}>
+        <TabsList className={`grid ${hasHistoryFeatures ? 'grid-cols-2' : 'grid-cols-1'} rounded-none border-b border-border/60 bg-transparent p-0`}>
           <TabsTrigger value="collections" className="gap-1.5 text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-primary/5">
             <FileJson className="h-3.5 w-3.5" />
             Collections
@@ -124,7 +146,7 @@ export function Sidebar({
 
         {/* Collections Tab */}
         <TabsContent value="collections" className="flex flex-1 flex-col overflow-hidden p-0 m-0">
-          <div className="border-b border-border/50 px-3 py-2.5 bg-muted/20">
+          <div className="border-b border-border/60 px-3 py-2.5 bg-muted/20">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -143,7 +165,7 @@ export function Sidebar({
                 icon={searchQuery ? Search : Sparkles}
                 title={searchQuery ? "No requests found" : "Create your first request"}
                 description={searchQuery ? "Try adjusting your search terms" : "Press Ctrl+N to get started"}
-                color="primary"
+                variant="default"
               />
             ) : (
               <div className="p-2 space-y-0.5">
@@ -153,7 +175,7 @@ export function Sidebar({
                     <div className="flex items-center gap-1 px-2 py-1.5 rounded-lg hover:bg-accent/40 cursor-pointer group"
                       onClick={() => onToggleFolder(folder.id)}>
                       {folder.isOpen ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                      {folder.isOpen ? <FolderOpen className="h-4 w-4 text-yellow-500/80" /> : <Folder className="h-4 w-4 text-yellow-500/80" />}
+                      {folder.isOpen ? <FolderOpen className="h-4 w-4 text-amber-400" /> : <Folder className="h-4 w-4 text-amber-400/70" />}
                       <span className="flex-1 text-sm font-medium truncate">{folder.name}</span>
 
                       <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -208,7 +230,7 @@ export function Sidebar({
         </TabsContent>
         {hasHistoryFeatures && (
           <TabsContent value="history" className="flex flex-1 flex-col overflow-hidden p-0 m-0">
-            <div className="border-b border-border/50 px-3 py-2.5 bg-muted/20">
+            <div className="border-b border-border/60 px-3 py-2.5 bg-muted/20">
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -227,7 +249,7 @@ export function Sidebar({
                   icon={historySearchQuery ? Search : Zap}
                   title={historySearchQuery ? "No history found" : "No request history"}
                   description={historySearchQuery ? "Try different search terms" : "Sent requests appear here automatically"}
-                  color="blue-500"
+                  variant="blue"
                 />
               ) : (
                 <div className="p-2 space-y-0.5">
@@ -281,7 +303,7 @@ export function Sidebar({
 
             {/* Clear History */}
             {requestHistory?.length > 0 && (
-              <div className="border-t border-border/50 px-3 py-2 bg-muted/20">
+              <div className="border-t border-border/60 px-3 py-2 bg-muted/20">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -306,7 +328,7 @@ const RequestItem = memo(function RequestItem({ req, activeRequest, onSelectRequ
       className={cn(
         "group relative flex items-center gap-2.5 rounded-lg px-3 py-2.5 transition-all duration-200",
         "hover:bg-accent/60 cursor-pointer",
-        activeRequest.id === req.id && "bg-accent shadow-sm"
+        activeRequest.id === req.id && "bg-accent shadow-sm transition-shadow"
       )}
       onClick={() => onSelectRequest(req)}
     >
