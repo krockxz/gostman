@@ -549,12 +549,7 @@ export function GraphQLPanel({
         >
           <summary className="px-4 py-2 cursor-pointer hover:bg-muted/10 flex items-center justify-between list-none">
             <div className="flex items-center gap-2">
-              <motion.div
-                animate={{ rotate: 'open' in { group } ? 90 : 0 }}
-                transition={{ type: "spring", stiffness: 300, damping: 24 }}
-              >
-                <ChevronRight className="h-4 w-4 text-muted-foreground group-open:rotate-90 transition-transform" />
-              </motion.div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground group-open:rotate-90 transition-transform" />
               <span className="text-xs font-medium text-muted-foreground">
                 Request Preview
               </span>
