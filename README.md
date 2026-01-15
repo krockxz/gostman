@@ -16,7 +16,7 @@
 
 <br>
 
-![Gostman Landing Page](https://www.gostman.site/landing_page_v2.png)
+![Gostman Landing Page](screenshots/landing_page.png)
 
 ## Overview
 
