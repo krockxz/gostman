@@ -1,13 +1,18 @@
 export const HTTP_METHODS = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "GRAPHQL"]
 
+// Simplified to 3 semantic colors: safe (green), warning (amber), error (red)
+// GET/HEAD: safe (read operations)
+// POST/PATCH/PUT: warning (write operations)
+// DELETE: error (destructive)
+// GRAPHQL: neutral (cyan - brand color)
 export const METHOD_COLORS = {
-    GET: "text-blue-400",
-    POST: "text-green-400",
-    PUT: "text-orange-400",
+    GET: "text-emerald-400",
+    POST: "text-amber-400",
+    PUT: "text-amber-400",
     DELETE: "text-red-400",
-    PATCH: "text-yellow-400",
-    HEAD: "text-purple-400",
-    GRAPHQL: "text-pink-400",
+    PATCH: "text-amber-400",
+    HEAD: "text-emerald-400",
+    GRAPHQL: "text-cyan-400",
 }
 
 export const METHOD_VARIANTS = {

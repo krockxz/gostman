@@ -42,7 +42,7 @@ Output: {"url": "https://api.example.com/ping", "key": "your-api-key-here"}
 2. **Whitespace**: Whitespace inside braces is trimmed: `{{ name }}` == `{{name}}`
 3. **Non-existent Keys**: If a variable is not found, the placeholder remains unchanged
 4. **Multiple Occurrences**: All occurrences of a placeholder are replaced
-5. **Nested Placeholders**: Not supported - use simple variable names only
+5. **Nested Placeholders**: Not supported - nested braces like `{{{{var}}}}` are not recognized
 
 ## Scope
 
@@ -56,31 +56,34 @@ Variables are applied to:
 
 ## Variable Naming
 
-Valid variable names:
+**Naming conventions** (recommended patterns, not enforced):
 - alphanumeric characters: `a-z, A-Z, 0-9`
 - underscores: `_`
 - hyphens: `-`
-- must start with a letter or underscore
 
-Examples:
+**Note**: The implementation does not enforce naming rules. Any key that can be stored in the variables map will be substituted correctly. The following conventions are recommended for consistency and readability:
+
+Recommended examples:
 - ✅ `api_key`
 - ✅ `API_KEY`
 - ✅ `base-url`
 - ✅ `_internal`
-- ❌ `123var` (starts with number)
-- ❌ `user.name` (contains dot)
+
+Also technically works (but not recommended):
+- `123var` (numbers in keys work fine)
+- `user.name` (dots work if defined in the variables map)
 
 ## Implementation
 
 ### JavaScript Version
-- **File**: `frontend/src/lib/variables.js`
+- **File**: `gostman-gui/frontend/src/lib/variables.js`
 - **Function**: `substitute(text, variables)`
 - **Pattern**: `/\{\{([^}]+)\}\}/g`
 
 ### Go Version
-- **File**: `gostman-gui/internal/variables/substituter.go`
-- **Method**: `Substituter.Substitute(input string)`
-- **Pattern**: `regexp.MustCompile(\{\{([^}]+)\}\})`
+- **File**: `gostman-gui/app.go`
+- **Function**: `replacePlaceholders(input string, variables map[string]string)`
+- **Pattern**: `regexp.MustCompile({{(.*?)}})`
 
 Both implementations:
 - Trim whitespace from variable names
@@ -92,14 +95,14 @@ Both implementations:
 
 ### JavaScript Tests
 ```bash
-cd frontend
+cd gostman-gui/frontend
 npm test -- variables.test.js
 ```
 
 ### Go Tests
 ```bash
 cd gostman-gui
-go test ./internal/variables/...
+go test -v -run TestReplacePlaceholders
 ```
 
 ## Examples

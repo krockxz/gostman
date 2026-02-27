@@ -21,7 +21,7 @@ import {
   Link2,
 } from "lucide-react"
 
-import logo from "../assets/logo.jpg"
+import logo from "../assets/logo.svg"
 
 // Animation components
 import {
@@ -420,7 +420,7 @@ export function LandingPage({ onGetStarted }) {
               See It In Action
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Watch Gostman handle different API protocols with ease
+              See it handle any API protocol
             </p>
           </AnimatedSection>
 
@@ -475,7 +475,7 @@ export function LandingPage({ onGetStarted }) {
               Everything You Need
             </h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Built by developers, for developers. Every feature crafted with care.
+              Crafted by developers, for developers
             </p>
           </AnimatedSection>
 
@@ -521,7 +521,7 @@ export function LandingPage({ onGetStarted }) {
               Why Choose Gostman?
             </h2>
             <p className="text-muted-foreground">
-              Lightweight, fast, and respects your privacy
+              Fast, lightweight, private
             </p>
           </AnimatedSection>
 
@@ -613,8 +613,8 @@ export function LandingPage({ onGetStarted }) {
                   viewport={{ once: true }}
                   transition={{ delay: 0.1 }}
                 >
-                  Join thousands of developers who've switched to a lighter, faster HTTP client.
-                  Download now and experience the difference.
+                  Join thousands who switched to a lighter, faster HTTP client.
+                  Download now.
                 </motion.p>
                 <motion.div
                   className="flex flex-col sm:flex-row items-center justify-center gap-4"

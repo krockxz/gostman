@@ -163,8 +163,8 @@ export function Sidebar({
             {filteredRequests.length === 0 && folders.length === 0 ? (
               <EmptyState
                 icon={searchQuery ? Search : Sparkles}
-                title={searchQuery ? "No requests found" : "Create your first request"}
-                description={searchQuery ? "Try adjusting your search terms" : "Press Ctrl+N to get started"}
+                title={searchQuery ? "No results" : "No requests yet"}
+                description={searchQuery ? "Try different terms" : "Press Ctrl+N to start"}
                 variant="default"
               />
             ) : (

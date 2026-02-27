@@ -28,6 +28,7 @@ export const useAppStore = create(
         codeDialogOpen: false,
         codeSnippets: null,
         importDialogOpen: false,
+        commandPaletteOpen: false,
 
         // Dialog states (not persisted)
         alertDialog: { isOpen: false, title: '', message: '', confirmText: 'OK', variant: 'default', onConfirm: null },
@@ -125,6 +126,10 @@ export const useAppStore = create(
           promptDialog: { isOpen: true, title, message, placeholder, defaultValue, onConfirm, onCancel }
         }),
         closePrompt: () => set({ promptDialog: { isOpen: false } }),
+
+        // Command palette
+        openCommandPalette: () => set({ commandPaletteOpen: true }),
+        closeCommandPalette: () => set({ commandPaletteOpen: false }),
 
         // Web version
         setActiveRequest: (requestOrUpdater) => set((state) => ({

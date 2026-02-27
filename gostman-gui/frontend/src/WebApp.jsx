@@ -6,6 +6,7 @@ import { ResponsePanel } from "./components/ResponsePanel"
 import { AlertDialog } from "./components/ui/AlertDialog"
 import { ConfirmDialog } from "./components/ui/ConfirmDialog"
 import { PromptDialog } from "./components/ui/PromptDialog"
+import { CommandPalette } from "./components/ui/CommandPalette"
 import { MonacoEditor } from "./components/MonacoEditor"
 import { Button } from "./components/ui/button"
 import { ArrowLeft, RotateCcw, Import, Loader2 } from "lucide-react"
@@ -22,7 +23,7 @@ import { loadState, saveState, resetState, KEYS } from "./lib/storage"
 import { useAppStore } from "./store/appStore"
 import { parseJSON } from "./lib/dataUtils"
 import { validateEnvVariables } from "./lib/validation"
-import logo from "./assets/logo.jpg"
+import logo from "./assets/logo.svg"
 
 function WebApp() {
   // Zustand store hooks
@@ -42,6 +43,7 @@ function WebApp() {
   const alertDialog = useAppStore((s) => s.alertDialog)
   const confirmDialog = useAppStore((s) => s.confirmDialog)
   const promptDialog = useAppStore((s) => s.promptDialog)
+  const commandPaletteOpen = useAppStore((s) => s.commandPaletteOpen)
 
   // Store actions
   const setRequests = useAppStore((s) => s.setRequests)
@@ -71,6 +73,8 @@ function WebApp() {
   const closeConfirm = useAppStore((s) => s.closeConfirm)
   const showPrompt = useAppStore((s) => s.showPrompt)
   const closePrompt = useAppStore((s) => s.closePrompt)
+  const openCommandPalette = useAppStore((s) => s.openCommandPalette)
+  const closeCommandPalette = useAppStore((s) => s.closeCommandPalette)
 
   // Get active request (web version uses single request, not tabs)
   const activeRequest = useAppStore((s) => s.activeRequest || DEFAULT_REQUEST)
@@ -107,10 +111,10 @@ function WebApp() {
 
   const handleCreateFolder = () => {
     showPrompt(
-      'Create Folder',
-      'Enter a name for the new folder:',
+      'New Folder',
+      'Folder name:',
       '',
-      'Folder name',
+      'My Folder',
       (name) => {
         if (name?.trim()) {
           addFolder(name.trim())
@@ -122,7 +126,7 @@ function WebApp() {
   const handleDeleteFolder = (folderId) => {
     showConfirm(
       'Delete Folder',
-      'Delete this folder? Requests inside will be moved to root.',
+      'Move requests to root?',
       () => {
         // Move requests to root
         setRequests(prev => prev.map(r => r.folderId === folderId ? { ...r, folderId: null } : r))
@@ -158,7 +162,7 @@ function WebApp() {
     if (!id) return
     showConfirm(
       'Delete Request',
-      'Are you sure you want to delete this request?',
+      'Can\'t be undone.',
       () => {
         setRequests(prev => prev.filter(r => r.id !== id))
         if (activeRequest.id === id) {
@@ -265,6 +269,58 @@ function WebApp() {
     setActiveRequest(prev => ({ ...prev, [field]: value }))
   }
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl/Cmd + K - Open command palette
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        openCommandPalette()
+      }
+      // Ctrl/Cmd + N - New request
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault()
+        handleNewRequest(null)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [openCommandPalette])
+
+  // Command palette handler
+  const handleCommand = (action) => {
+    switch (action) {
+      case 'newRequest':
+        handleNewRequest(null)
+        break
+      case 'saveRequest':
+        handleSave()
+        break
+      case 'newFolder':
+        handleCreateFolder()
+        break
+      case 'export':
+        openImportDialog()
+        break
+      case 'import':
+        openImportDialog()
+        break
+      case 'reset':
+        showConfirm(
+          'Reset App',
+          'Clear all data? This cannot be undone.',
+          () => {
+            resetState()
+            showAlert('Success', 'Application state cleared.', 'OK', 'success')
+          },
+          null,
+          'destructive'
+        )
+        break
+    }
+  }
+
   // Show landing page for web version
   if (showLanding) {
     return <LandingPage onGetStarted={handleGetStarted} />
@@ -290,7 +346,7 @@ function WebApp() {
             className="gap-2"
           >
             <Import className="h-4 w-4" />
-            Import / Export
+            Import
           </Button>
           <Button
             variant="ghost"
@@ -306,11 +362,11 @@ function WebApp() {
             size="icon"
             onClick={() => {
               showConfirm(
-                'Reset Application',
-                'Reset application state? This will clear all data.',
+                'Reset App',
+                'Clear all data?',
                 () => {
                   resetState()
-                  showAlert('Success', 'Application state cleared.', 'OK', 'success')
+                  showAlert('Success', 'Cleared!', 'OK', 'success')
                 },
                 null,
                 'destructive'
@@ -438,6 +494,13 @@ function WebApp() {
             closePrompt()
           }}
           onCancel={closePrompt}
+        />
+
+        {/* Command Palette */}
+        <CommandPalette
+          isOpen={commandPaletteOpen}
+          onClose={closeCommandPalette}
+          onCommand={handleCommand}
         />
       </div>
     </div>

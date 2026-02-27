@@ -215,7 +215,7 @@ describe('variables', () => {
       const url = substitute('https://{{host}}/users/{{user}}/repos', vars)
       expect(url).toBe('https://api.github.com/users/octocat/repos')
 
-      const headers = substitute('{"Authorization": "Bearer {{token}", "Accept": "application/json"}', vars)
+      const headers = substitute('{"Authorization": "Bearer {{token}}", "Accept": "application/json"}', vars)
       expect(headers).toBe('{"Authorization": "Bearer ghp_token", "Accept": "application/json"}')
     })
   })

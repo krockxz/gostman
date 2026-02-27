@@ -7,6 +7,7 @@ import { ResponsePanel } from "./components/ResponsePanel"
 import { AlertDialog } from "./components/ui/AlertDialog"
 import { ConfirmDialog } from "./components/ui/ConfirmDialog"
 import { PromptDialog } from "./components/ui/PromptDialog"
+import { CommandPalette } from "./components/ui/CommandPalette"
 // Lazy load heavy dialogs
 const CodeSnippetDialog = lazy(() => import("./components/CodeSnippetDialog").then(module => ({ default: module.CodeSnippetDialog })))
 const ImportExportDialog = lazy(() => import("./components/ImportExportDialog").then(module => ({ default: module.ImportExportDialog })))
@@ -18,7 +19,7 @@ import { generateAllSnippets } from "./lib/codeGenerator"
 import { useAppStore, useActiveTab } from "./store/appStore"
 import { parseJSON } from "./lib/dataUtils"
 import { validateEnvVariables } from "./lib/validation"
-import logo from "./assets/logo.jpg"
+import logo from "./assets/logo.svg"
 
 function App() {
   // Zustand store hooks
@@ -36,6 +37,7 @@ function App() {
   const alertDialog = useAppStore((s) => s.alertDialog)
   const confirmDialog = useAppStore((s) => s.confirmDialog)
   const promptDialog = useAppStore((s) => s.promptDialog)
+  const commandPaletteOpen = useAppStore((s) => s.commandPaletteOpen)
 
   // Store actions
   const setRequests = useAppStore((s) => s.setRequests)
@@ -66,6 +68,8 @@ function App() {
   const closeConfirm = useAppStore((s) => s.closeConfirm)
   const showPrompt = useAppStore((s) => s.showPrompt)
   const closePrompt = useAppStore((s) => s.closePrompt)
+  const openCommandPalette = useAppStore((s) => s.openCommandPalette)
+  const closeCommandPalette = useAppStore((s) => s.closeCommandPalette)
 
   // Get active tab
   const activeTab = useActiveTab()
@@ -100,9 +104,15 @@ function App() {
     updateActiveRequest({ [field]: value })
   }
 
-  // Keyboard shortcut for New Request (Ctrl+N)
+  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
+      // Ctrl/Cmd + K - Open command palette
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        openCommandPalette()
+      }
+      // Ctrl/Cmd + N - New request
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
         e.preventDefault()
         newTab()
@@ -111,14 +121,14 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [newTab])
+  }, [newTab, openCommandPalette])
 
   const handleCreateFolder = () => {
     showPrompt(
-      'Create Folder',
-      'Enter a name for the new folder:',
+      'New Folder',
+      'Folder name:',
       '',
-      'Folder name',
+      'My Folder',
       (name) => {
         if (name?.trim()) {
           addFolder(name.trim())
@@ -130,7 +140,7 @@ function App() {
   const handleDeleteFolder = (folderId) => {
     showConfirm(
       'Delete Folder',
-      'Delete this folder? Requests inside will be moved to root.',
+      'Move requests to root?',
       () => deleteFolder(folderId),
       null,
       'default'
@@ -154,7 +164,7 @@ function App() {
     if (!id) return
     showConfirm(
       'Delete Request',
-      'Are you sure you want to delete this request? This action cannot be undone.',
+      'Can\'t be undone.',
       async () => {
         try {
           await DeleteRequest(id)
@@ -208,7 +218,7 @@ function App() {
   const handleClearHistory = () => {
     showConfirm(
       'Clear History',
-      'Are you sure you want to clear all request history?',
+      'Delete all history?',
       () => clearHistory(),
       null,
       'default'
@@ -260,10 +270,43 @@ function App() {
         setVariables(varsStr)
         await SaveVariables(varsStr)
       }
-      showAlert('Success', 'Import completed successfully!', 'OK', 'success')
+      showAlert('Success', 'Imported!', 'OK', 'success')
     } catch (e) {
       console.error("Import failed:", e)
       showAlert('Import Failed', e.message, 'OK', 'warning')
+    }
+  }
+
+  // Command palette handler
+  const handleCommand = (action) => {
+    switch (action) {
+      case 'newRequest':
+        newTab()
+        break
+      case 'saveRequest':
+        handleSave()
+        break
+      case 'newFolder':
+        handleCreateFolder()
+        break
+      case 'export':
+        openImportDialog()
+        break
+      case 'import':
+        openImportDialog()
+        break
+      case 'reset':
+        showConfirm(
+          'Reset App',
+          'Clear all data? This cannot be undone.',
+          () => {
+            localStorage.clear()
+            window.location.reload()
+          },
+          null,
+          'destructive'
+        )
+        break
     }
   }
 
@@ -289,15 +332,15 @@ function App() {
             className="gap-2"
           >
             <Import className="h-4 w-4" />
-            Import / Export
+            Import
           </Button>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => {
               showConfirm(
-                'Reset Application',
-                'Reset application state? This will clear all data and reload the application.',
+                'Reset App',
+                'Clear all data?',
                 () => {
                   localStorage.clear()
                   window.location.reload()
@@ -437,6 +480,13 @@ function App() {
           closePrompt()
         }}
         onCancel={closePrompt}
+      />
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={closeCommandPalette}
+        onCommand={handleCommand}
       />
     </div>
   )

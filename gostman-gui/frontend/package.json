@@ -8,7 +8,8 @@
     "build": "vite build",
     "dev:web": "cp index-web.html index.html && vite --config vite.web.config.js",
     "build:web": "cp index-web.html index.html && vite build --config vite.web.config.js",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
@@ -38,10 +39,12 @@
     "@types/react-dom": "^18.0.6",
     "@vitejs/plugin-react": "^2.0.1",
     "autoprefixer": "^10.4.23",
+    "jsdom": "^25.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "vite": "^3.0.7",
     "vite-plugin-node-polyfills": "^0.24.0",
-    "vite-plugin-static-copy": "^0.16.0"
+    "vite-plugin-static-copy": "^0.16.0",
+    "vitest": "^2.1.0"
   }
 }

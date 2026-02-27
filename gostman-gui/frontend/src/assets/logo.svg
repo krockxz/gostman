@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Background -->
+  <rect width="64" height="64" rx="14" fill="url(#gradient)"/>
+  <!-- G letter stylized as HTTP request -->
+  <path d="M18 20V44M18 20H32C37 20 40 23 40 28C40 33 37 36 32 36H24V44" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Connection dots -->
+  <circle cx="48" cy="20" r="3" fill="white" opacity="0.9"/>
+  <circle cx="48" cy="32" r="3" fill="white" opacity="0.6"/>
+  <circle cx="48" cy="44" r="3" fill="white" opacity="0.9"/>
+  <!-- Gradient definition -->
+  <defs>
+    <linearGradient id="gradient" x1="0" y1="0" x2="64" y2="64">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="100%" stop-color="#0891b2"/>
+    </linearGradient>
+  </defs>
+</svg>
