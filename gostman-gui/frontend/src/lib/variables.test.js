@@ -111,14 +111,14 @@ describe('variables', () => {
       expect(result).toBe('')
     })
 
-    it('should handle numeric values', () => {
+    it('should handle numeric values (converted to string)', () => {
       const result = substitute('{{port}}', { port: 8080 })
-      expect(result).toBe(8080)
+      expect(result).toBe('8080')
     })
 
-    it('should handle boolean values', () => {
+    it('should handle boolean values (converted to string)', () => {
       const result = substitute('{{enabled}}', { enabled: true })
-      expect(result).toBe(true)
+      expect(result).toBe('true')
     })
 
     it('should handle consecutive placeholders', () => {
