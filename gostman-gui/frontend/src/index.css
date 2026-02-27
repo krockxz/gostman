@@ -243,6 +243,46 @@
   animation: pulse-slow-delayed 5s ease-in-out infinite;
 }
 
+/* Performance optimizations for background animations */
+.bg-orb {
+  contain: layout style paint;
+  will-change: transform;
+}
+
+/* Reduced motion support for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-float-delayed,
+  .animate-float-slow,
+  .animate-pulse-slow,
+  .animate-pulse-slow-delayed,
+  .animate-pulse-glow {
+    animation: none !important;
+  }
+
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Skip link for accessibility */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  padding: 8px 16px;
+  z-index: 100;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
 /* Custom styling for react-json-view-lite */
 @layer components {
   .json-tree-wrapper {

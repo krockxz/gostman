@@ -45,17 +45,23 @@ export const RestShowcase = () => {
 
 
   useEffect(() => {
+    let mounted = true
+    let timeoutId = null
+
     const interval = setInterval(() => {
       setStep((prev) => {
         const next = (prev + 1) % 5
-        if (next === 1) {
+        if (next === 1 && mounted) {
           setIsSending(true)
-          setTimeout(() => {
-            setResponse(RESPONSE_DATA)
-            setIsSending(false)
+          timeoutId = setTimeout(() => {
+            if (mounted) {
+              setResponse(RESPONSE_DATA)
+              setIsSending(false)
+            }
           }, 800)
         }
-        if (next === 0) {
+        if (next === 0 && mounted) {
+          if (timeoutId) clearTimeout(timeoutId)
           setResponse(null)
           setIsSending(false)
         }
@@ -63,7 +69,11 @@ export const RestShowcase = () => {
       })
     }, 2500)
 
-    return () => clearInterval(interval)
+    return () => {
+      mounted = false
+      clearInterval(interval)
+      if (timeoutId) clearTimeout(timeoutId)
+    }
   }, [])
 
   const copyCode = () => {

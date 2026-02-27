@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { useState, useEffect, useRef, lazy, Suspense } from "react"
+import { motion, AnimatePresence, useInView } from "framer-motion"
 import { Button, buttonVariants } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Card, CardContent } from "./ui/card"
@@ -31,12 +31,25 @@ import {
   SlideInFromRight,
 } from "./landing/AnimatedSection"
 
-// Showcase components
+// Lazy load showcase components for better performance
 import { RestShowcase, GraphQLShowcase, ChainingShowcase, WebSocketShowcase } from "./landing/showcases"
 
 // Existing components
 import { FloatingCode } from "./landing/FloatingCode"
 import { DownloadDropdown } from "./landing/DownloadDropdown"
+
+// Loading skeleton for showcase components
+function ShowcaseSkeleton() {
+  return (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="space-y-4 w-full max-w-md">
+        <div className="h-4 bg-muted/20 rounded animate-pulse w-1/3" />
+        <div className="h-32 bg-muted/10 rounded animate-pulse" />
+        <div className="h-24 bg-muted/10 rounded animate-pulse" />
+      </div>
+    </div>
+  )
+}
 
 const FEATURES = [
   {
@@ -102,11 +115,20 @@ const SHOWCASE_TABS = [
 
 const useGitHubStars = () => {
   const [stars, setStars] = useState(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const controllerRef = useRef(null)
 
   useEffect(() => {
+    // Cancel previous request if component remounts quickly
+    if (controllerRef.current) {
+      controllerRef.current.abort()
+    }
+
     const controller = new AbortController()
+    controllerRef.current = controller
 
     const fetchStars = async () => {
+      setIsLoading(true)
       try {
         const response = await fetch("/api/stars", { signal: controller.signal })
         const contentType = response.headers.get("content-type")
@@ -129,14 +151,19 @@ const useGitHubStars = () => {
             console.error("Failed to fetch stars:", ghErr)
           }
         }
+      } finally {
+        setIsLoading(false)
       }
     }
 
-    fetchStars()
-    return () => controller.abort()
+    const timeoutId = setTimeout(fetchStars, 100) // Small debounce
+    return () => {
+      clearTimeout(timeoutId)
+      controller.abort()
+    }
   }, [])
 
-  return stars
+  return { stars, isLoading }
 }
 
 const TabButton = ({ tab, isActive, onClick }) => {
@@ -144,6 +171,10 @@ const TabButton = ({ tab, isActive, onClick }) => {
   return (
     <motion.button
       onClick={onClick}
+      aria-pressed={isActive}
+      aria-selected={isActive}
+      role="tab"
+      tabIndex={0}
       className={cn(
         "relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
         isActive
@@ -153,7 +184,7 @@ const TabButton = ({ tab, isActive, onClick }) => {
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
     >
-      <Icon className={cn("w-4 h-4", isActive ? "text-primary" : "")} />
+      <Icon className={cn("w-4 h-4", isActive ? "text-primary" : "")} aria-hidden="true" />
       <span>{tab.label}</span>
       {isActive && (
         <motion.div
@@ -168,21 +199,26 @@ const TabButton = ({ tab, isActive, onClick }) => {
 
 export function LandingPage({ onGetStarted }) {
   const [activeTab, setActiveTab] = useState("rest")
-  const stars = useGitHubStars()
+  const { stars, isLoading } = useGitHubStars()
 
   return (
-    <div className="min-h-screen bg-background text-foreground overflow-hidden">
+    <>
+      {/* Skip link for accessibility */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+      <div className="min-h-screen bg-background text-foreground overflow-hidden" id="main-content">
       {/* Animated background */}
-      <div className="fixed inset-0 pointer-events-none">
+      <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
         {/* Subtle dot grid pattern */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_1px_at_1px_1px,rgba(255,255,255,0.05)_1px,transparent_0)] [background-size:40px_40px]" />
 
         {/* Animated gradient orbs */}
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[120px] animate-pulse"
+        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] animate-pulse bg-orb" />
+        <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-emerald-500/5 rounded-full blur-[120px] animate-pulse bg-orb"
           style={{ animationDuration: "4s", animationDelay: "1s" }}
         />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-cyan-500/3 rounded-full blur-[100px] animate-pulse"
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-cyan-500/3 rounded-full blur-[100px] animate-pulse bg-orb"
           style={{ animationDuration: "5s", animationDelay: "2s" }}
         />
 
@@ -229,18 +265,21 @@ export function LandingPage({ onGetStarted }) {
                 rel="noopener noreferrer"
                 className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "gap-2 text-sm hover:bg-muted/50")}
               >
-                <Github className="h-4 w-4" />
+                <Github className="h-4 w-4" aria-hidden="true" />
                 <span className="font-medium">Star</span>
-                {stars !== null && (
+                {stars !== null ? (
                   <motion.span
                     className="font-mono text-xs text-muted-foreground"
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     key={stars}
+                    aria-live="polite"
                   >
                     {stars.toLocaleString()}
                   </motion.span>
-                )}
+                ) : isLoading ? (
+                  <div className="h-4 w-8 bg-muted/20 animate-pulse rounded" />
+                ) : null}
               </a>
             </motion.div>
           </div>
@@ -408,18 +447,20 @@ export function LandingPage({ onGetStarted }) {
               layout
             >
               <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {activeTab === "rest" && <RestShowcase />}
-                  {activeTab === "graphql" && <GraphQLShowcase />}
-                  {activeTab === "chaining" && <ChainingShowcase />}
-                  {activeTab === "websocket" && <WebSocketShowcase />}
-                </motion.div>
+                <Suspense fallback={<ShowcaseSkeleton />}>
+                  <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {activeTab === "rest" && <RestShowcase />}
+                    {activeTab === "graphql" && <GraphQLShowcase />}
+                    {activeTab === "chaining" && <ChainingShowcase />}
+                    {activeTab === "websocket" && <WebSocketShowcase />}
+                  </motion.div>
+                </Suspense>
               </AnimatePresence>
             </motion.div>
           </ScaleIn>
@@ -659,5 +700,6 @@ export function LandingPage({ onGetStarted }) {
         </div>
       </footer>
     </div>
+    </>
   )
 }
