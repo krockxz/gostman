@@ -4,6 +4,9 @@ import { SendRequest, GetRequests, SaveRequest, DeleteRequest, GetVariables, Sav
 import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
 import { ResponsePanel } from "./components/ResponsePanel"
+import { AlertDialog } from "./components/ui/AlertDialog"
+import { ConfirmDialog } from "./components/ui/ConfirmDialog"
+import { PromptDialog } from "./components/ui/PromptDialog"
 // Lazy load heavy dialogs
 const CodeSnippetDialog = lazy(() => import("./components/CodeSnippetDialog").then(module => ({ default: module.CodeSnippetDialog })))
 const ImportExportDialog = lazy(() => import("./components/ImportExportDialog").then(module => ({ default: module.ImportExportDialog })))
@@ -14,6 +17,7 @@ import { RequestTabs } from "./components/RequestTabs"
 import { generateAllSnippets } from "./lib/codeGenerator"
 import { useAppStore, useActiveTab } from "./store/appStore"
 import { parseJSON } from "./lib/dataUtils"
+import { validateEnvVariables } from "./lib/validation"
 import logo from "./assets/logo.jpg"
 
 function App() {
@@ -27,6 +31,11 @@ function App() {
   const codeDialogOpen = useAppStore((s) => s.codeDialogOpen)
   const codeSnippets = useAppStore((s) => s.codeSnippets)
   const importDialogOpen = useAppStore((s) => s.importDialogOpen)
+
+  // Dialog state
+  const alertDialog = useAppStore((s) => s.alertDialog)
+  const confirmDialog = useAppStore((s) => s.confirmDialog)
+  const promptDialog = useAppStore((s) => s.promptDialog)
 
   // Store actions
   const setRequests = useAppStore((s) => s.setRequests)
@@ -49,6 +58,14 @@ function App() {
   const closeCodeDialog = useAppStore((s) => s.closeCodeDialog)
   const openImportDialog = useAppStore((s) => s.openImportDialog)
   const closeImportDialog = useAppStore((s) => s.closeImportDialog)
+
+  // Dialog actions
+  const showAlert = useAppStore((s) => s.showAlert)
+  const closeAlert = useAppStore((s) => s.closeAlert)
+  const showConfirm = useAppStore((s) => s.showConfirm)
+  const closeConfirm = useAppStore((s) => s.closeConfirm)
+  const showPrompt = useAppStore((s) => s.showPrompt)
+  const closePrompt = useAppStore((s) => s.closePrompt)
 
   // Get active tab
   const activeTab = useActiveTab()
@@ -97,16 +114,27 @@ function App() {
   }, [newTab])
 
   const handleCreateFolder = () => {
-    const name = prompt("Enter folder name:")
-    if (name) {
-      addFolder(name)
-    }
+    showPrompt(
+      'Create Folder',
+      'Enter a name for the new folder:',
+      '',
+      'Folder name',
+      (name) => {
+        if (name?.trim()) {
+          addFolder(name.trim())
+        }
+      }
+    )
   }
 
   const handleDeleteFolder = (folderId) => {
-    if (confirm("Delete folder? Requests inside will be moved to root.")) {
-      deleteFolder(folderId)
-    }
+    showConfirm(
+      'Delete Folder',
+      'Delete this folder? Requests inside will be moved to root.',
+      () => deleteFolder(folderId),
+      null,
+      'default'
+    )
   }
 
 
@@ -114,24 +142,32 @@ function App() {
   const handleSave = async () => {
     try {
       const msg = await SaveRequest(activeRequest)
-      alert(msg)
+      showAlert('Success', msg, 'OK', 'success')
       await refreshRequests()
     } catch (e) {
       console.error(e)
+      showAlert('Error', `Failed to save: ${e.message}`, 'OK', 'warning')
     }
   }
 
   const handleDelete = async (id) => {
     if (!id) return
-    if (confirm("Are you sure you want to delete this request?")) {
-      try {
-        await DeleteRequest(id)
-        await refreshRequests()
-        newTab()
-      } catch (e) {
-        console.error(e)
-      }
-    }
+    showConfirm(
+      'Delete Request',
+      'Are you sure you want to delete this request? This action cannot be undone.',
+      async () => {
+        try {
+          await DeleteRequest(id)
+          await refreshRequests()
+          newTab()
+        } catch (e) {
+          console.error(e)
+          showAlert('Error', `Failed to delete: ${e.message}`, 'OK', 'warning')
+        }
+      },
+      null,
+      'destructive'
+    )
   }
 
   const handleSend = async () => {
@@ -170,17 +206,29 @@ function App() {
   }
 
   const handleClearHistory = () => {
-    if (confirm("Are you sure you want to clear all history?")) {
-      clearHistory()
-    }
+    showConfirm(
+      'Clear History',
+      'Are you sure you want to clear all request history?',
+      () => clearHistory(),
+      null,
+      'default'
+    )
   }
 
   const handleSaveVars = async () => {
+    // Validate before saving
+    const validation = validateEnvVariables(variables)
+    if (!validation.valid) {
+      showAlert('Validation Error', validation.error, 'OK', 'warning')
+      return
+    }
+
     try {
       const msg = await SaveVariables(variables)
-      alert(msg)
+      showAlert('Success', msg, 'OK', 'success')
     } catch (e) {
       console.error(e)
+      showAlert('Error', `Failed to save: ${e.message}`, 'OK', 'warning')
     }
   }
 
@@ -212,9 +260,10 @@ function App() {
         setVariables(varsStr)
         await SaveVariables(varsStr)
       }
+      showAlert('Success', 'Import completed successfully!', 'OK', 'success')
     } catch (e) {
       console.error("Import failed:", e)
-      alert("Import failed: " + e.message)
+      showAlert('Import Failed', e.message, 'OK', 'warning')
     }
   }
 
@@ -246,10 +295,16 @@ function App() {
             variant="ghost"
             size="icon"
             onClick={() => {
-              if (confirm("Reset application state? This will clear all data.")) {
-                localStorage.clear()
-                window.location.reload()
-              }
+              showConfirm(
+                'Reset Application',
+                'Reset application state? This will clear all data and reload the application.',
+                () => {
+                  localStorage.clear()
+                  window.location.reload()
+                },
+                null,
+                'destructive'
+              )
             }}
             className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
             title="Reset to default (Clear data)"
@@ -312,6 +367,7 @@ function App() {
               responseStatus={activeTab?.status || ''}
               responseHeaders={null}
               EditorComponent={MonacoEditor}
+              defaultTab={useAppStore((s) => s.activeRequestTab) || 'body'}
             />
 
             <ResponsePanel
@@ -345,6 +401,43 @@ function App() {
           />
         )}
       </Suspense>
+
+      {/* Custom Dialogs (non-blocking alternatives to alert/confirm/prompt) */}
+      <AlertDialog
+        isOpen={alertDialog.isOpen}
+        title={alertDialog.title}
+        message={alertDialog.message}
+        confirmText={alertDialog.confirmText}
+        variant={alertDialog.variant}
+        onConfirm={closeAlert}
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmText={confirmDialog.confirmText}
+        variant={confirmDialog.variant}
+        onConfirm={() => {
+          confirmDialog.onConfirm?.()
+          closeConfirm()
+        }}
+        onCancel={closeConfirm}
+      />
+
+      <PromptDialog
+        isOpen={promptDialog.isOpen}
+        title={promptDialog.title}
+        message={promptDialog.message}
+        placeholder={promptDialog.placeholder}
+        defaultValue={promptDialog.defaultValue}
+        confirmText={promptDialog.confirmText}
+        onConfirm={(value) => {
+          promptDialog.onConfirm?.(value)
+          closePrompt()
+        }}
+        onCancel={closePrompt}
+      />
     </div>
   )
 }

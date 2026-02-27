@@ -20,6 +20,7 @@ export const useAppStore = create(
         activeTabId: 'tab-1',
         nextTabId: 2,
         activeRequest: { ...DEFAULT_REQUEST },
+        activeRequestTab: 'body', // Active tab in RequestTabs ('body', 'graphql', 'websocket', etc.)
         showLanding: true,
         webStatus: '',
         webLoading: false,
@@ -27,6 +28,11 @@ export const useAppStore = create(
         codeDialogOpen: false,
         codeSnippets: null,
         importDialogOpen: false,
+
+        // Dialog states (not persisted)
+        alertDialog: { isOpen: false, title: '', message: '', confirmText: 'OK', variant: 'default', onConfirm: null },
+        confirmDialog: { isOpen: false, title: '', message: '', confirmText: 'Confirm', variant: 'default', onConfirm: null, onCancel: null },
+        promptDialog: { isOpen: false, title: '', message: '', placeholder: '', defaultValue: '', confirmText: 'OK', onConfirm: null, onCancel: null },
 
         // Requests
         setRequests: (requests) => set({ requests }),
@@ -96,12 +102,37 @@ export const useAppStore = create(
         openImportDialog: () => set({ importDialogOpen: true }),
         closeImportDialog: () => set({ importDialogOpen: false }),
 
+        // Dialog actions (non-blocking alternatives to alert/confirm/prompt)
+        showAlert: (title, message, confirmText = 'OK', variant = 'default') => set({
+          alertDialog: { isOpen: true, title, message, confirmText, variant }
+        }),
+        closeAlert: () => set({ alertDialog: { isOpen: false, title: '', message: '', confirmText: 'OK', variant: 'default' } }),
+
+        showConfirm: (title, message, onConfirm, onCancel = null, variant = 'default') => set({
+          confirmDialog: {
+            isOpen: true,
+            title,
+            message,
+            confirmText: variant === 'destructive' ? 'Delete' : 'Confirm',
+            variant,
+            onConfirm,
+            onCancel
+          }
+        }),
+        closeConfirm: () => set({ confirmDialog: { isOpen: false } }),
+
+        showPrompt: (title, message, defaultValue = '', placeholder = '', onConfirm, onCancel = null) => set({
+          promptDialog: { isOpen: true, title, message, placeholder, defaultValue, onConfirm, onCancel }
+        }),
+        closePrompt: () => set({ promptDialog: { isOpen: false } }),
+
         // Web version
         setActiveRequest: (requestOrUpdater) => set((state) => ({
           activeRequest: typeof requestOrUpdater === 'function'
             ? requestOrUpdater(state.activeRequest)
             : requestOrUpdater
         })),
+        setActiveRequestTab: (tab) => set({ activeRequestTab: tab }),
         setShowLanding: (show) => set({ showLanding: show }),
         setWebStatus: (status) => set({ webStatus: status }),
         setWebLoading: (loading) => set({ webLoading: loading }),

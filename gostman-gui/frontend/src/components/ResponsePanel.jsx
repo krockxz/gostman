@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
 import { Badge } from "./ui/badge"
-import { Code, Eye, FileText } from "lucide-react"
+import { Code, Eye, FileText, WifiOff, AlertCircle, Clock, Server, HelpCircle } from "lucide-react"
 import { JsonViewer } from "./JsonViewer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
+import { parseError, getErrorConfig, isStructuredError } from "../lib/errors"
 
 // Pure function: Get status badge variant (Single Responsibility)
 const getStatusVariant = (status) => {
@@ -17,6 +18,23 @@ const getStatusVariant = (status) => {
 }
 
 export function ResponsePanel({ response, status, responseType = 'text', responseTime }) {
+  // Check if response is an error
+  const isError = status === 'Error' || responseType === 'error' || (response && (response.startsWith('Error:') || response.startsWith('Network Error')))
+
+  // Parse error if present
+  const errorObj = isError ? parseError(response) : null
+  const errorConfig = errorObj ? getErrorConfig(errorObj) : null
+
+  // Error icon mapping
+  const ErrorIcons = {
+    network: WifiOff,
+    validation: AlertCircle,
+    timeout: Clock,
+    server: Server,
+    unknown: HelpCircle
+  }
+  const ErrorIconComponent = errorConfig ? ErrorIcons[errorObj?.type] || HelpCircle : null
+
   // Default to 'preview' if it's html or image, otherwise 'body'
   const defaultTab = (responseType === 'html' || responseType === 'image') ? 'preview' : 'body'
   const [activeTab, setActiveTab] = useState(defaultTab)
@@ -44,7 +62,14 @@ export function ResponsePanel({ response, status, responseType = 'text', respons
                 {status}
               </Badge>
             )}
-            {responseType !== 'text' && (
+            {/* Error type badge */}
+            {isError && errorConfig && (
+              <Badge variant="outline" className={`text-[10px] uppercase ${errorConfig.bg} ${errorConfig.color} ${errorConfig.border}`}>
+                {ErrorIconComponent && <ErrorIconComponent className="h-3 w-3 mr-1 inline" />}
+                {errorConfig.title}
+              </Badge>
+            )}
+            {responseType !== 'text' && responseType !== 'error' && (
               <Badge variant="outline" className="text-[10px] uppercase">{responseType}</Badge>
             )}
           </div>
@@ -79,11 +104,36 @@ export function ResponsePanel({ response, status, responseType = 'text', respons
 
       {/* Response Body */}
       <div className="flex-1 overflow-hidden relative">
-        {activeTab === 'body' && (
+        {isError && errorObj ? (
+          // Error display banner
+          <div className={`h-full p-6 ${errorConfig.bg} border-l-4 ${errorConfig.border} overflow-auto`}>
+            <div className="flex items-start gap-4">
+              <div className={`p-3 rounded-full ${errorConfig.bg} flex-shrink-0`}>
+                {ErrorIconComponent && <ErrorIconComponent className={`h-6 w-6 ${errorConfig.color}`} />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className={`text-lg font-semibold ${errorConfig.color}`}>
+                  {errorConfig.title}
+                </h3>
+                <p className="text-sm text-muted-foreground mt-1 break-words">{errorObj.message}</p>
+                {errorObj.details && (
+                  <details className="mt-3">
+                    <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
+                      Error details
+                    </summary>
+                    <pre className="mt-2 text-xs bg-background/50 rounded p-3 overflow-x-auto">
+                      {typeof errorObj.details === 'string' ? errorObj.details : JSON.stringify(errorObj.details, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'body' && (
           <JsonViewer data={response} />
         )}
 
-        {activeTab === 'preview' && (
+        {activeTab === 'preview' && !isError && (
           <div className="h-full w-full bg-white text-black dark:bg-zinc-900 dark:text-zinc-100 overflow-auto">
             {responseType === 'html' && (
               <iframe

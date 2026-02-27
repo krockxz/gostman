@@ -116,6 +116,7 @@ func replacePlaceholders(input string, variables map[string]string) string {
 	re := regexp.MustCompile(`{{(.*?)}}`)
 	return re.ReplaceAllStringFunc(input, func(match string) string {
 		key := strings.Trim(match, "{}")
+		key = strings.TrimSpace(key) // Trim whitespace from the key
 		if value, exists := variables[key]; exists {
 			return value
 		}
@@ -127,7 +128,6 @@ func replacePlaceholders(input string, variables map[string]string) string {
 
 func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON string) ResponseMsg {
 	// Handle GraphQL requests - convert to POST with JSON body
-	originalMethod := method
 	if method == "GRAPHQL" {
 		method = "POST"
 		// Format GraphQL request

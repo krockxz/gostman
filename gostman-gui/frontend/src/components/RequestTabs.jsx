@@ -1,11 +1,13 @@
-import React, { lazy, Suspense } from "react"
+import React, { lazy, Suspense, useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { ScrollArea } from "./ui/scroll-area"
 import { Button } from "./ui/button"
-import { Braces, Hash, Heading1, FolderOpen, FlaskConical, Zap, Radio } from "lucide-react"
+import { Braces, Hash, Heading1, FolderOpen, FlaskConical, Zap, Radio, AlertCircle, CheckCircle2 } from "lucide-react"
 import { TestScriptsPanel } from "./TestScriptsPanel"
+import { validateEnvVariables, formatJSONError } from "../lib/validation"
+import { isWebSocketURL } from "./WebSocketPanel"
 // Lazy load panels
-const GraphQLPanel = lazy(() => import("./GraphQLPanel").then(module => ({ default: module.GraphQLPanel })))
+const GraphQLPanel = lazy(() => import("./GraphQLPanel").then(module => ({ default: module.GraphQLPanel, formatGraphQLRequest })))
 const WebSocketPanel = lazy(() => import("./WebSocketPanel").then(module => ({ default: module.WebSocketPanel })))
 
 export function RequestTabs({
@@ -17,10 +19,64 @@ export function RequestTabs({
     response,
     responseStatus,
     responseHeaders,
-    EditorComponent
+    EditorComponent,
+    defaultTab = 'body'
 }) {
+    // Environment variable validation state
+    const [envVarValidation, setEnvVarValidation] = useState({ valid: true, error: null })
+
+    // Internal tab state (can be controlled externally via defaultTab changes)
+    const [activeTab, setActiveTab] = useState(defaultTab)
+
+    // Update internal tab when defaultTab changes (external control)
+    useEffect(() => {
+        setActiveTab(defaultTab)
+    }, [defaultTab])
+
+    // Auto-detect WebSocket URL and switch tab
+    useEffect(() => {
+        const url = activeRequest?.url || ''
+        if (isWebSocketURL(url) && activeTab !== 'websocket') {
+            setActiveTab('websocket')
+        }
+    }, [activeRequest?.url])
+
+    // Validate environment variables when they change
+    useEffect(() => {
+        const result = validateEnvVariables(variables)
+        setEnvVarValidation(result)
+    }, [variables])
+
+    // Sync GraphQL data to body when GraphQL tab is active
+    // This ensures that the Send button sends the correctly formatted GraphQL request
+    useEffect(() => {
+        if (activeTab === 'graphql') {
+            const query = activeRequest.graphqlQuery || activeRequest.body || ''
+            const variables = activeRequest.graphqlVariables || '{}'
+
+            // Dynamically import formatGraphQLRequest to avoid circular dependency
+            import("./GraphQLPanel").then(module => {
+                const formatted = module.formatGraphQLRequest(query, variables)
+                if (formatted.body) {
+                    onUpdateField('body', formatted.body)
+                }
+                if (formatted.headers) {
+                    // Ensure Content-Type is set for GraphQL
+                    try {
+                        const currentHeaders = JSON.parse(activeRequest.headers || '{}')
+                        const mergedHeaders = { ...currentHeaders, ...formatted.headers }
+                        onUpdateField('headers', JSON.stringify(mergedHeaders, null, 2))
+                    } catch (e) {
+                        // If headers are invalid JSON, just set the GraphQL headers
+                        onUpdateField('headers', JSON.stringify(formatted.headers, null, 2))
+                    }
+                }
+            })
+        }
+    }, [activeTab, activeRequest.graphqlQuery, activeRequest.graphqlVariables])
+
     return (
-        <Tabs defaultValue="body" className="flex flex-1 flex-col">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-1 flex-col">
             <div className="border-b border-border/60 bg-muted/10 px-4 backdrop-blur-md">
                 <TabsList>
                     <TabsTrigger value="body" icon={Braces}>Body</TabsTrigger>
@@ -96,28 +152,6 @@ export function RequestTabs({
                 </TabsContent>
 
                 <TabsContent value="vars" className="h-full p-0" noMargin>
-                    {/* Vars tab is slightly complex due to the extra UI elements */}
-                    {/* If EditorComponent is Textarea (WebApp), likely wrapped in ScrollArea?? */}
-                    {/* Actually App.jsx uses Monaco directly in div. WebApp uses ScrollArea wrapper for Textarea. */}
-                    {/* We might need to conditionalize the container or pass a 'Container' prop? */}
-                    {/* Or better, let's keep the ScrollArea only if it's Textarea? Or just always put one? */}
-                    {/* Monaco handles its own scrolling. Textarea needs one. */}
-
-                    {/* Compromise: We'll assume the EditorComponent handles its specific needs or we pass a wrapper.
-               BUT WebApp.jsx has "Environment Variables" label and explanation TEXT that App.jsx DOESN'T (exact layout differs).
-               App.jsx has "Environment Variables" label at the BOTTOM in a separate div.
-               WebApp.jsx has it at the TOP.
-           */}
-                    {/* Divergence detected. Let's aim for common ground or allow children/render props for vars? 
-               Or simply standardize the UI? 
-               Standardizing is better for "Clean Code".
-               Let's go with the App.jsx layout (Editor takes most space, specific controls in a sidebar or bottom).
-               Actually, let's look at `App.jsx` again (Step 75 lines 322-349).
-               It splits view: Editor on top, Controls on bottom.
-               WebApp.jsx (Step 74 lines 329-353) puts controls/labels on top, then Textarea.
-               
-               I will unify them to the `App.jsx` style (Editor main, controls bottom) as it seems more "IDE-like".
-           */}
                     <div className="flex h-full flex-col">
                         <div className="flex-1 overflow-hidden relative">
                             <EditorComponent
@@ -125,10 +159,28 @@ export function RequestTabs({
                                 onChange={(e) => onUpdateVariables(e.target.value)}
                                 language="json"
                                 placeholder='{\n  "base_url": "https://api.example.com"\n}'
-                                className="min-h-[200px] font-mono text-sm h-full resize-none p-4 bg-transparent border-0 focus-visible:ring-0" // Styling for Textarea to fill
+                                className="min-h-[200px] font-mono text-sm h-full resize-none p-4 bg-transparent border-0 focus-visible:ring-0"
                                 height="100%"
                             />
                         </div>
+
+                        {/* Validation status bar */}
+                        <div className={`px-4 py-2 flex items-center gap-2 text-xs border-t ${
+                            envVarValidation.error ? 'bg-destructive/10 border-destructive/20' : 'bg-emerald-500/10 border-emerald-500/20'
+                        }`}>
+                            {envVarValidation.error ? (
+                                <>
+                                    <AlertCircle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
+                                    <span className="text-destructive truncate">{formatJSONError(envVarValidation)}</span>
+                                </>
+                            ) : (
+                                <>
+                                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+                                    <span className="text-emerald-600 dark:text-emerald-400">Valid JSON</span>
+                                </>
+                            )}
+                        </div>
+
                         <div className="border-t border-border/60 bg-muted/10 p-4">
                             <div className="mb-3">
                                 <label className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
@@ -139,7 +191,12 @@ export function RequestTabs({
                                     Define reusable variables with double curly braces syntax.
                                 </p>
                             </div>
-                            <Button onClick={onSaveVars} size="sm" className="gap-2">
+                            <Button
+                                onClick={onSaveVars}
+                                size="sm"
+                                className="gap-2"
+                                disabled={!!envVarValidation.error}
+                            >
                                 <FolderOpen className="h-4 w-4" />
                                 Save Variables
                             </Button>
@@ -153,7 +210,8 @@ export function RequestTabs({
                         responseStatus={null}
                         responseHeaders={activeRequest.responseHeaders}
                         variables={variables}
-                        onUpdateVariables={onUpdateVariables}
+                        onVariablesChange={onUpdateVariables}
+                        onSaveVariables={onSaveVars}
                     />
                 </TabsContent>
             </div>

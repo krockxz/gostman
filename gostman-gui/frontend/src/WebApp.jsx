@@ -3,6 +3,9 @@ import { LandingPage } from "./components/LandingPage"
 import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
 import { ResponsePanel } from "./components/ResponsePanel"
+import { AlertDialog } from "./components/ui/AlertDialog"
+import { ConfirmDialog } from "./components/ui/ConfirmDialog"
+import { PromptDialog } from "./components/ui/PromptDialog"
 import { MonacoEditor } from "./components/MonacoEditor"
 import { Button } from "./components/ui/button"
 import { ArrowLeft, RotateCcw, Import, Loader2 } from "lucide-react"
@@ -18,6 +21,7 @@ import { DEFAULT_REQUEST, mockRequests, mockFolders } from "./lib/mockData"
 import { loadState, saveState, resetState, KEYS } from "./lib/storage"
 import { useAppStore } from "./store/appStore"
 import { parseJSON } from "./lib/dataUtils"
+import { validateEnvVariables } from "./lib/validation"
 import logo from "./assets/logo.jpg"
 
 function WebApp() {
@@ -33,6 +37,11 @@ function WebApp() {
   const codeDialogOpen = useAppStore((s) => s.codeDialogOpen)
   const codeSnippets = useAppStore((s) => s.codeSnippets)
   const importDialogOpen = useAppStore((s) => s.importDialogOpen)
+
+  // Dialog state
+  const alertDialog = useAppStore((s) => s.alertDialog)
+  const confirmDialog = useAppStore((s) => s.confirmDialog)
+  const promptDialog = useAppStore((s) => s.promptDialog)
 
   // Store actions
   const setRequests = useAppStore((s) => s.setRequests)
@@ -54,6 +63,14 @@ function WebApp() {
   const addToHistory = useAppStore((s) => s.addToHistory)
   const deleteHistoryItem = useAppStore((s) => s.deleteHistoryItem)
   const clearHistory = useAppStore((s) => s.clearHistory)
+
+  // Dialog actions
+  const showAlert = useAppStore((s) => s.showAlert)
+  const closeAlert = useAppStore((s) => s.closeAlert)
+  const showConfirm = useAppStore((s) => s.showConfirm)
+  const closeConfirm = useAppStore((s) => s.closeConfirm)
+  const showPrompt = useAppStore((s) => s.showPrompt)
+  const closePrompt = useAppStore((s) => s.closePrompt)
 
   // Get active request (web version uses single request, not tabs)
   const activeRequest = useAppStore((s) => s.activeRequest || DEFAULT_REQUEST)
@@ -89,19 +106,32 @@ function WebApp() {
   }
 
   const handleCreateFolder = () => {
-    const name = prompt("Enter folder name:")
-    if (name) {
-      addFolder(name)
-    }
+    showPrompt(
+      'Create Folder',
+      'Enter a name for the new folder:',
+      '',
+      'Folder name',
+      (name) => {
+        if (name?.trim()) {
+          addFolder(name.trim())
+        }
+      }
+    )
   }
 
   const handleDeleteFolder = (folderId) => {
-    if (confirm("Delete folder? Requests inside will be moved to root.")) {
-      // Move requests to root
-      setRequests(prev => prev.map(r => r.folderId === folderId ? { ...r, folderId: null } : r))
-      // Delete folder
-      deleteFolder(folderId)
-    }
+    showConfirm(
+      'Delete Folder',
+      'Delete this folder? Requests inside will be moved to root.',
+      () => {
+        // Move requests to root
+        setRequests(prev => prev.map(r => r.folderId === folderId ? { ...r, folderId: null } : r))
+        // Delete folder
+        deleteFolder(folderId)
+      },
+      null,
+      'default'
+    )
   }
 
   const handleToggleFolder = (folderId) => {
@@ -121,17 +151,23 @@ function WebApp() {
     }
 
     setActiveRequest(newRequest)
-    alert("Request saved! (Web version)")
+    showAlert('Success', 'Request saved!', 'OK', 'success')
   }
 
   const handleDelete = async (id) => {
     if (!id) return
-    if (confirm("Are you sure you want to delete this request?")) {
-      setRequests(prev => prev.filter(r => r.id !== id))
-      if (activeRequest.id === id) {
-        handleNewRequest()
-      }
-    }
+    showConfirm(
+      'Delete Request',
+      'Are you sure you want to delete this request?',
+      () => {
+        setRequests(prev => prev.filter(r => r.id !== id))
+        if (activeRequest.id === id) {
+          handleNewRequest()
+        }
+      },
+      null,
+      'destructive'
+    )
   }
 
   const handleSelectHistoryItem = (item) => {
@@ -194,7 +230,15 @@ function WebApp() {
   }
 
   const handleSaveVars = async () => {
-    alert("Variables saved! (Web version)")
+    // Validate before saving
+    const validation = validateEnvVariables(variables)
+    if (!validation.valid) {
+      showAlert('Validation Error', validation.error, 'OK', 'warning')
+      return
+    }
+
+    // Web version persists to localStorage via useEffect (line 70-75)
+    showAlert('Success', 'Variables saved!', 'OK', 'success')
   }
 
   const handleImport = (importData) => {
@@ -260,7 +304,18 @@ function WebApp() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={resetState}
+            onClick={() => {
+              showConfirm(
+                'Reset Application',
+                'Reset application state? This will clear all data.',
+                () => {
+                  resetState()
+                  showAlert('Success', 'Application state cleared.', 'OK', 'success')
+                },
+                null,
+                'destructive'
+              )
+            }}
             className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
             title="Reset to default (Clear data)"
           >
@@ -314,6 +369,7 @@ function WebApp() {
               responseStatus={status}
               responseHeaders={activeRequest.responseHeaders}
               EditorComponent={MonacoEditor}
+              defaultTab={useAppStore((s) => s.activeRequestTab) || 'body'}
             />
 
             <ResponsePanel
@@ -346,6 +402,43 @@ function WebApp() {
             />
           )}
         </Suspense>
+
+        {/* Custom Dialogs (non-blocking alternatives to alert/confirm/prompt) */}
+        <AlertDialog
+          isOpen={alertDialog.isOpen}
+          title={alertDialog.title}
+          message={alertDialog.message}
+          confirmText={alertDialog.confirmText}
+          variant={alertDialog.variant}
+          onConfirm={closeAlert}
+        />
+
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmText={confirmDialog.confirmText}
+          variant={confirmDialog.variant}
+          onConfirm={() => {
+            confirmDialog.onConfirm?.()
+            closeConfirm()
+          }}
+          onCancel={closeConfirm}
+        />
+
+        <PromptDialog
+          isOpen={promptDialog.isOpen}
+          title={promptDialog.title}
+          message={promptDialog.message}
+          placeholder={promptDialog.placeholder}
+          defaultValue={promptDialog.defaultValue}
+          confirmText={promptDialog.confirmText}
+          onConfirm={(value) => {
+            promptDialog.onConfirm?.(value)
+            closePrompt()
+          }}
+          onCancel={closePrompt}
+        />
       </div>
     </div>
   )

@@ -1,14 +1,19 @@
 import React from "react"
-import { Send, Save, Globe, Code } from "lucide-react"
+import { Send, Save, Globe, Code, Radio } from "lucide-react"
 import { Button } from "./ui/button"
+import { Badge } from "./ui/badge"
 import { Select } from "./ui/select"
 import { Input } from "./ui/input"
 import { cn } from "../lib/utils"
 import { parseCurlCommand, isCurlCommand } from "../lib/curlParser"
+import { isWebSocketURL } from "./WebSocketPanel"
 
 import { HTTP_METHODS, METHOD_COLORS } from "../lib/constants"
 
 export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameChange, onHeadersChange, onBodyChange, onQueryParamsChange, onSend, onSave, onGenerateCode, loading }) {
+  // Check if URL is a WebSocket URL
+  const isWebSocket = activeRequest?.url && isWebSocketURL(activeRequest.url)
+
   React.useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
@@ -89,8 +94,20 @@ export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameC
             value={activeRequest.url}
             onChange={(e) => onUrlChange(e.target.value)}
             onPaste={handlePaste}
-            className="pl-9 font-mono text-sm"
+            className={cn(
+              "pl-9 pr-24 font-mono text-sm",
+              isWebSocket && "border-cyan-500/50 focus-visible:border-cyan-500"
+            )}
           />
+          {/* WebSocket indicator badge */}
+          {isWebSocket && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Badge className="gap-1 bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-xs">
+                <Radio className="h-3 w-3" />
+                WebSocket
+              </Badge>
+            </div>
+          )}
         </div>
 
         {/* Send Button */}
