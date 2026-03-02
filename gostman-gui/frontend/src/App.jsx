@@ -32,6 +32,7 @@ function App() {
   const codeDialogOpen = useAppStore((s) => s.codeDialogOpen)
   const codeSnippets = useAppStore((s) => s.codeSnippets)
   const importDialogOpen = useAppStore((s) => s.importDialogOpen)
+  const activeRequestTab = useAppStore((s) => s.activeRequestTab)
 
   // Dialog state
   const alertDialog = useAppStore((s) => s.alertDialog)
@@ -410,7 +411,7 @@ function App() {
               responseStatus={activeTab?.status || ''}
               responseHeaders={null}
               EditorComponent={MonacoEditor}
-              defaultTab={useAppStore((s) => s.activeRequestTab) || 'body'}
+              defaultTab={activeRequestTab || 'body'}
             />
 
             <ResponsePanel
