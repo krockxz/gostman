@@ -1,5 +1,6 @@
 build/bin
 node_modules
 frontend/dist
+!frontend/dist/.gitkeep
 gostman-gui
 frontend/package.json.md5

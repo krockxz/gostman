@@ -23,7 +23,7 @@ jobs:
 
       - name: Run Go tests
         working-directory: ./gostman-gui
-        run: go test -v -run TestReplacePlaceholders
+        run: go test -v -tags test -run TestReplacePlaceholders
 
   js-tests:
     name: JavaScript Tests

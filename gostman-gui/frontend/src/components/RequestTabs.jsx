@@ -7,7 +7,7 @@ import { TestScriptsPanel } from "./TestScriptsPanel"
 import { validateEnvVariables, formatJSONError } from "../lib/validation"
 import { isWebSocketURL } from "./WebSocketPanel"
 // Lazy load panels
-const GraphQLPanel = lazy(() => import("./GraphQLPanel").then(module => ({ default: module.GraphQLPanel, formatGraphQLRequest })))
+const GraphQLPanel = lazy(() => import("./GraphQLPanel").then(module => ({ default: module.GraphQLPanel })))
 const WebSocketPanel = lazy(() => import("./WebSocketPanel").then(module => ({ default: module.WebSocketPanel })))
 
 export function RequestTabs({
@@ -165,9 +165,8 @@ export function RequestTabs({
                         </div>
 
                         {/* Validation status bar */}
-                        <div className={`px-4 py-2 flex items-center gap-2 text-xs border-t ${
-                            envVarValidation.error ? 'bg-destructive/10 border-destructive/20' : 'bg-emerald-500/10 border-emerald-500/20'
-                        }`}>
+                        <div className={`px-4 py-2 flex items-center gap-2 text-xs border-t ${envVarValidation.error ? 'bg-destructive/10 border-destructive/20' : 'bg-emerald-500/10 border-emerald-500/20'
+                            }`}>
                             {envVarValidation.error ? (
                                 <>
                                     <AlertCircle className="h-3.5 w-3.5 text-destructive flex-shrink-0" />
