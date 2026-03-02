@@ -15,6 +15,8 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -61,6 +63,7 @@ type ResponseMsg struct {
 // Globals
 var appFolder = getAppDataPath()
 var jsonfilePath = filepath.Join(appFolder, "gostman.json")
+var dataMutex sync.RWMutex
 
 // --- Helper Functions (Private) ---
 
@@ -80,6 +83,9 @@ func checkFileExists(filepath string) bool {
 // getSavedData loads the entire data structure from disk.
 // It returns an empty SavedData if the file doesn't exist or errors.
 func getSavedData() SavedData {
+	dataMutex.RLock()
+	defer dataMutex.RUnlock()
+
 	if !checkFileExists(jsonfilePath) {
 		return SavedData{}
 	}
@@ -90,13 +96,19 @@ func getSavedData() SavedData {
 	}
 	var data SavedData
 	if len(file) > 0 {
-		json.Unmarshal(file, &data)
+		err = json.Unmarshal(file, &data)
+		if err != nil {
+			log.Println("Error unmarshaling file data:", err)
+		}
 	}
 	return data
 }
 
 // saveSavedData persists the data structure to disk.
 func saveSavedData(data SavedData) error {
+	dataMutex.Lock()
+	defer dataMutex.Unlock()
+
 	if err := os.MkdirAll(appFolder, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
@@ -156,6 +168,8 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 			}
 			updatedHeaders, _ := json.Marshal(headers)
 			headersJSON = string(updatedHeaders)
+		} else {
+			return ResponseMsg{Body: fmt.Sprintf("Error parsing GraphQL Headers JSON: %v", err), Status: "Configuration Error"}
 		}
 	}
 
@@ -202,7 +216,13 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 	var err error
 
 	// We only support a subset of methods with body for now, but standard http.NewRequest handles nil body fine for GET
-	req, err = http.NewRequest(method, urlStr, bytes.NewBuffer([]byte(bodyStr)))
+	reqBody := bytes.NewBuffer([]byte(bodyStr))
+	if bodyStr == "" {
+		req, err = http.NewRequest(method, urlStr, nil)
+	} else {
+		req, err = http.NewRequest(method, urlStr, reqBody)
+	}
+
 	if err != nil {
 		return ResponseMsg{Body: "Failed to create request: " + err.Error(), Status: "Error"}
 	}
@@ -211,8 +231,10 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 		req.Header.Set(key, value)
 	}
 
-	// 6. Execute
-	client := &http.Client{}
+	// 6. Execute (with timeout to prevent hanging UI)
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return ResponseMsg{Body: "Network Error: " + err.Error(), Status: "Error"}
@@ -233,7 +255,7 @@ func (a *App) GetRequests() []Request {
 
 func (a *App) SaveRequest(r Request) string {
 	data := getSavedData()
-	
+
 	if r.Id == "" {
 		r.Id = uuid.New().String()
 		data.Requests = append(data.Requests, r)
@@ -259,7 +281,7 @@ func (a *App) SaveRequest(r Request) string {
 
 func (a *App) DeleteRequest(id string) error {
 	data := getSavedData()
-	
+
 	index := -1
 	for i, req := range data.Requests {
 		if req.Id == id {
