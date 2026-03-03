@@ -1,4 +1,4 @@
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   X, Upload, Download
 } from "lucide-react"
@@ -16,9 +16,20 @@ export function ImportExportDialog({
 }) {
   const [activeTab, setActiveTab] = useState('import')
 
+  // Handle Escape key to close dialog
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [onClose])
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-4xl bg-gradient-to-b from-background to-muted/20 border border-border/50 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={onClose}>
+      <div className="relative w-full max-w-4xl max-h-[90vh] bg-gradient-to-b from-background to-muted/20 border border-border/50 rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border/50 px-6 py-4 bg-gradient-to-r from-primary/5 via-transparent to-transparent">
           <div className="flex items-center gap-3">
@@ -45,7 +56,7 @@ export function ImportExportDialog({
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-6 overflow-y-auto flex-1 min-h-0">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50 p-1 rounded-xl">
               <TabsTrigger value="import" className="gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
@@ -72,18 +83,18 @@ export function ImportExportDialog({
               />
             </TabsContent>
           </Tabs>
-        </div >
+        </div>
 
         {/* Footer */}
-        < div className="px-6 py-3 bg-muted/30 border-t border-border/50 flex items-center justify-between" >
+        <div className="px-6 py-3 bg-muted/30 border-t border-border/50 flex items-center justify-between shrink-0">
           <p className="text-xs text-muted-foreground">
             Press <kbd className="px-1.5 py-0.5 rounded bg-background border border-border/50 font-mono text-[10px]">Esc</kbd> to close
           </p>
           <Button variant="ghost" size="sm" onClick={onClose}>
             Close
           </Button>
-        </div >
-      </div >
-    </div >
+        </div>
+      </div>
+    </div>
   )
 }

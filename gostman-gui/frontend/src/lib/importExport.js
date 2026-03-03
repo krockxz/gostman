@@ -1350,23 +1350,18 @@ export async function parseOpenAPISpec(specString) {
       }
     }
 
-    // Check for relative server URLs before processing
+    // Check for relative server URLs - add warning but allow import
     const serverInfo = getServerUrl(validation.spec.servers?.[0]) || { url: '', isRelative: false }
     const { url: serverUrl, isRelative } = serverInfo
-    if (isRelative || !serverUrl) {
-      return {
-        success: false,
-        error: 'This OpenAPI spec uses a relative server URL (' + (serverUrl || '/path') + '). ' +
-               'Please edit the spec to include a full base URL (e.g., https://api.example.com' +
-               (serverUrl || '') + ')'
-      }
-    }
 
     // Import the validated spec
     const result = importOpenAPISpec(validation.spec)
 
-    // Add warnings about external refs if any were found
+    // Add warnings about relative URLs, external refs, and circular refs
     const warnings = []
+    if (isRelative || !serverUrl) {
+      warnings.push(`Server URL is relative (${serverUrl || '/path'}). You may need to update the base URL in requests to match your API server.`)
+    }
     if (validation.spec._externalRefs && validation.spec._externalRefs.length > 0) {
       warnings.push(`Found ${validation.spec._externalRefs.length} external $ref(s) that could not be resolved. These may need to be resolved manually.`)
     }
