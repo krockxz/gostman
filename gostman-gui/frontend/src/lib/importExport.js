@@ -935,8 +935,7 @@ function generateExampleFromSchema(schema, depth = 0, seenSchemas = null, spec =
     spec._circularRefs = []
   }
 
-  // Ensure fresh WeakSet for each top-level call (not passed from caller)
-  // This prevents accumulation of seen objects across separate calls
+  // Use a single WeakSet per top-level call to track seen schemas
   const freshSeenSchemas = seenSchemas || new WeakSet()
 
   function generate(schema, currentDepth, seen) {
@@ -962,11 +961,9 @@ function generateExampleFromSchema(schema, depth = 0, seenSchemas = null, spec =
         return null // Skip circular refs instead of including placeholder
       }
 
-      // Create new WeakSet for this branch
-      const newSeen = new WeakSet(seen)
-      newSeen.add(resolved)
-
-      return generate(resolved, currentDepth + 1, newSeen)
+      // Reuse the same WeakSet for tracking
+      seen.add(resolved)
+      return generate(resolved, currentDepth + 1, seen)
     }
 
     // Handle allOf - merge all schemas
@@ -974,7 +971,7 @@ function generateExampleFromSchema(schema, depth = 0, seenSchemas = null, spec =
       const result = {}
       let hasRequired = []
       schema.allOf.forEach(sub => {
-        const generated = generate(sub, currentDepth + 1, new WeakSet(seen))
+        const generated = generate(sub, currentDepth + 1, seen)
         if (generated && typeof generated === 'object') {
           Object.assign(result, generated)
           if (sub.required) {
@@ -992,7 +989,7 @@ function generateExampleFromSchema(schema, depth = 0, seenSchemas = null, spec =
     // Handle anyOf - use first valid schema
     if (schema.anyOf && Array.isArray(schema.anyOf)) {
       for (const sub of schema.anyOf) {
-        const generated = generate(sub, currentDepth + 1, new WeakSet(seen))
+        const generated = generate(sub, currentDepth + 1, seen)
         if (generated !== null) {
           return generated
         }
@@ -1004,7 +1001,7 @@ function generateExampleFromSchema(schema, depth = 0, seenSchemas = null, spec =
     if (schema.oneOf && Array.isArray(schema.oneOf)) {
       const schemas = schema.oneOf
       if (schemas.length > 0) {
-        return generate(schemas[0], currentDepth + 1, new WeakSet(seen))
+        return generate(schemas[0], currentDepth + 1, seen)
       }
       return {}
     }
@@ -1033,7 +1030,7 @@ function generateExampleFromSchema(schema, depth = 0, seenSchemas = null, spec =
         return schema.default !== undefined ? schema.default : true
       case 'array': {
         if (schema.items) {
-          return [generate(schema.items, currentDepth + 1, new WeakSet(seen))]
+          return [generate(schema.items, currentDepth + 1, seen)]
         }
         return []
       }
@@ -1046,14 +1043,14 @@ function generateExampleFromSchema(schema, depth = 0, seenSchemas = null, spec =
               propSchema.default !== undefined ||
               propSchema.example !== undefined ||
               propSchema.const !== undefined) {
-            obj[key] = generate(propSchema, currentDepth + 1, new WeakSet(seen))
+            obj[key] = generate(propSchema, currentDepth + 1, seen)
           }
         })
         // If object is empty, add at least one property for reference
         if (Object.keys(obj).length === 0) {
           const firstKey = Object.keys(schema.properties)[0]
           if (firstKey) {
-            obj[firstKey] = generate(schema.properties[firstKey], currentDepth + 1, new WeakSet(seen))
+            obj[firstKey] = generate(schema.properties[firstKey], currentDepth + 1, seen)
           }
         }
         return obj
@@ -1071,7 +1068,7 @@ function generateExampleFromSchema(schema, depth = 0, seenSchemas = null, spec =
     }
   }
 
-  const result = generate(schema, depth, new WeakSet(freshSeenSchemas))
+  const result = generate(schema, depth, freshSeenSchemas)
   return JSON.stringify(result, null, 2)
 }
 
@@ -1090,6 +1087,10 @@ export function importOpenAPISpec(openapiSpec) {
   }
   if (!openapiSpec._circularRefs) {
     openapiSpec._circularRefs = []
+  }
+
+  if (!openapiSpec.paths || typeof openapiSpec.paths !== 'object') {
+    throw new Error('Invalid OpenAPI spec: paths must be an object')
   }
 
   // Reject Swagger 2.0
@@ -1132,19 +1133,23 @@ export function importOpenAPISpec(openapiSpec) {
 
   // First pass: collect all used tags
   const usedTags = new Set()
-  Object.values(paths).forEach(pathItem => {
-    const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
-    httpMethods.forEach(method => {
-      const operation = pathItem[method]
-      if (operation?.tags) {
-        operation.tags.forEach(tag => usedTags.add(tag))
-      }
+  const pathValues = Object.values(paths)
+  if (Array.isArray(pathValues)) {
+    pathValues.forEach(pathItem => {
+      if (!pathItem || typeof pathItem !== 'object') return
+      const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
+      httpMethods.forEach(method => {
+        const operation = pathItem[method]
+        if (operation?.tags && Array.isArray(operation.tags)) {
+          operation.tags.forEach(tag => usedTags.add(tag))
+        }
+      })
     })
-  })
+  }
 
   // Create folders only for used tags
   const tagFolderMap = new Map()
-  const tags = openapiSpec.tags || []
+  const tags = Array.isArray(openapiSpec.tags) ? openapiSpec.tags : []
 
   tags.forEach(tag => {
     if (usedTags.has(tag.name)) {
@@ -1164,12 +1169,13 @@ export function importOpenAPISpec(openapiSpec) {
   const securityHeaders = buildSecurityHeaders(openapiSpec.components?.securitySchemes || {})
 
   // Process paths
-  Object.entries(openapiSpec.paths || {}).forEach(([path, pathItem]) => {
+  const pathsEntries = Object.entries(openapiSpec.paths || {})
+  pathsEntries.forEach(([path, pathItem]) => {
     // Keep path as-is with {param} format
     const fullPath = joinUrlParts(baseUrl, path)
 
     // Get path-level parameters (shared across all methods in this path)
-    const pathParameters = pathItem.parameters || []
+    const pathParameters = Array.isArray(pathItem.parameters) ? pathItem.parameters : []
 
     // Process each HTTP method
     const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
@@ -1179,8 +1185,9 @@ export function importOpenAPISpec(openapiSpec) {
       if (!operation) return
 
       // Determine folder from tags (use first tag)
-      const folderId = operation.tags?.[0]
-        ? tagFolderMap.get(operation.tags[0]) || null
+      const operationTags = Array.isArray(operation.tags) ? operation.tags : []
+      const folderId = operationTags[0]
+        ? tagFolderMap.get(operationTags[0]) || null
         : null
 
       // Build query parameters (merge path-level and operation-level)
@@ -1336,7 +1343,7 @@ export async function parseOpenAPISpec(specString) {
     const validation = await validateOpenAPI(spec)
     if (!validation.valid) {
       // Limit errors to first MAX_VALIDATION_ERRORS and show count
-      const allErrors = validation.errors || []
+      const allErrors = Array.isArray(validation.errors) ? validation.errors : []
       const displayErrors = allErrors.slice(0, MAX_VALIDATION_ERRORS)
       const errorMessages = displayErrors.map(e => `- ${e.message || e}`).join('\n')
       const errorCount = allErrors.length
@@ -1350,28 +1357,36 @@ export async function parseOpenAPISpec(specString) {
       }
     }
 
+    // Ensure validation.spec exists and is an object
+    const validatedSpec = validation.spec && typeof validation.spec === 'object' ? validation.spec : spec
+
     // Check for relative server URLs - add warning but allow import
-    const serverInfo = getServerUrl(validation.spec.servers?.[0]) || { url: '', isRelative: false }
+    const serverInfo = getServerUrl(validatedSpec.servers?.[0]) || { url: '', isRelative: false }
     const { url: serverUrl, isRelative } = serverInfo
 
     // Import the validated spec
-    const result = importOpenAPISpec(validation.spec)
+    const result = importOpenAPISpec(validatedSpec)
 
     // Add warnings about relative URLs, external refs, and circular refs
     const warnings = []
     if (isRelative || !serverUrl) {
       warnings.push(`Server URL is relative (${serverUrl || '/path'}). You may need to update the base URL in requests to match your API server.`)
     }
-    if (validation.spec._externalRefs && validation.spec._externalRefs.length > 0) {
-      warnings.push(`Found ${validation.spec._externalRefs.length} external $ref(s) that could not be resolved. These may need to be resolved manually.`)
+    const externalRefs = validation.spec._externalRefs
+    if (Array.isArray(externalRefs) && externalRefs.length > 0) {
+      warnings.push(`Found ${externalRefs.length} external $ref(s) that could not be resolved. These may need to be resolved manually.`)
     }
-    if (validation.spec._circularRefs && validation.spec._circularRefs.length > 0) {
-      warnings.push(`Skipped ${validation.spec._circularRefs.length} circular reference(s) during example generation.`)
+    const circularRefs = validation.spec._circularRefs
+    if (Array.isArray(circularRefs) && circularRefs.length > 0) {
+      warnings.push(`Skipped ${circularRefs.length} circular reference(s) during example generation.`)
     }
+
+    // Ensure result is a plain object before spreading
+    const resultObj = result && typeof result === 'object' ? result : { requests: [], folders: [], collectionName: 'Import' }
 
     return {
       success: true,
-      ...result,
+      ...resultObj,
       warnings
     }
   } catch (error) {
@@ -1704,10 +1719,11 @@ export async function validateOpenAPI(spec, options = {}) {
           spec: result.schema
         }
       }
-      if (result.errors && result.errors.length > 0) {
+      const errors = Array.isArray(result.errors) ? result.errors : []
+      if (errors.length > 0) {
         return {
           valid: false,
-          errors: result.errors.map(e => ({ message: e.message || String(e) }))
+          errors: errors.map(e => ({ message: e.message || String(e) }))
         }
       }
     }
@@ -1722,9 +1738,10 @@ export async function validateOpenAPI(spec, options = {}) {
           spec: spec  // Return original spec with tracking properties intact
         }
       }
-      if (result.errors && result.errors.length > 0) {
+      const errors = Array.isArray(result.errors) ? result.errors : []
+      if (errors.length > 0) {
         // Limit errors to MAX_VALIDATION_ERRORS
-        const limitedErrors = result.errors.slice(0, MAX_VALIDATION_ERRORS)
+        const limitedErrors = errors.slice(0, MAX_VALIDATION_ERRORS)
         return {
           valid: false,
           errors: limitedErrors.map(e => ({ message: e.message || String(e) }))
@@ -2187,33 +2204,41 @@ function inferType(val) {
 }
 
 /**
- * Detects the format of imported data
- * @param {string} jsonString - JSON string to detect
+ * Detects the format of imported data (JSON or YAML)
+ * @param {string} jsonString - JSON or YAML string to detect
  * @returns {string} Format type: 'postman', 'openapi', 'gostman', or 'unknown'
  */
 export function detectImportFormat(jsonString) {
+  let data
+
+  // Try JSON first
   try {
-    const data = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString
-
-    // Postman collection
-    if (data.info?.schema?.includes('postman.com/json/collection') || data.info?._postman_id) {
-      return 'postman'
-    }
-
-    // OpenAPI/Swagger
-    if (data.openapi || (data.swagger && data.info)) {
-      return 'openapi'
-    }
-
-    // Gostman
-    if (data.gostman || (data.version && data.gostman)) {
-      return 'gostman'
-    }
-
-    return 'unknown'
+    data = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString
   } catch {
-    return 'unknown'
+    // Try YAML if JSON fails
+    try {
+      data = parseYAML(jsonString)
+    } catch {
+      return 'unknown'
+    }
   }
+
+  // Postman collection
+  if (data.info?.schema?.includes('postman.com/json/collection') || data.info?._postman_id) {
+    return 'postman'
+  }
+
+  // OpenAPI/Swagger
+  if (data.openapi || (data.swagger && data.info)) {
+    return 'openapi'
+  }
+
+  // Gostman
+  if (data.gostman || (data.version && data.gostman)) {
+    return 'gostman'
+  }
+
+  return 'unknown'
 }
 
 /**

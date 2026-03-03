@@ -401,13 +401,13 @@ export function ImportTab({ onImport, onClose }) {
                                         <Badge variant="secondary" className="text-xs">
                                             {importResult.foldersCount} folders
                                         </Badge>
-                                        {importResult.warnings && importResult.warnings.length > 0 && (
+                                        {Array.isArray(importResult.warnings) && importResult.warnings.length > 0 && (
                                             <Badge variant="outline" className="text-xs text-amber-600 border-amber-600">
                                                 {importResult.warnings.length} warning{importResult.warnings.length > 1 ? 's' : ''}
                                             </Badge>
                                         )}
                                     </div>
-                                    {importResult.warnings && importResult.warnings.length > 0 && (
+                                    {Array.isArray(importResult.warnings) && importResult.warnings.length > 0 && (
                                         <div className="mt-2 p-2 bg-amber-500/10 border border-amber-500/20 rounded">
                                             <p className="text-xs text-amber-700 dark:text-amber-400">
                                                 {importResult.warnings.map((w, i) => (
@@ -436,7 +436,7 @@ export function ImportTab({ onImport, onClose }) {
 
             {/* Format Info Cards */}
             <div className="grid grid-cols-2 gap-3">
-                {IMPORT_FORMATS.map((format) => {
+            {IMPORT_FORMATS.map((format) => {
                     const Icon = format.icon
                     return (
                         <div
