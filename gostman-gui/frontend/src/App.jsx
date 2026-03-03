@@ -19,7 +19,7 @@ import { generateAllSnippets } from "./lib/codeGenerator"
 import { useAppStore, useActiveTab } from "./store/appStore"
 import { parseJSON } from "./lib/dataUtils"
 import { validateEnvVariables } from "./lib/validation"
-import logo from "./assets/logo.svg"
+import logo from "./assets/logo.jpg"
 
 function App() {
   // Zustand store hooks
@@ -200,7 +200,10 @@ function App() {
         request: { ...activeRequest, response: resp.body },
         status: resp.status,
         responseTime: getResponseTime(),
-        loading: false
+        loading: false,
+        responseHeaders: resp.headers || null,
+        responseCookies: resp.cookies || null,
+        responseSize: resp.size || null
       })
 
       addToHistory(activeRequest)
@@ -209,7 +212,10 @@ function App() {
         request: { ...activeRequest, response: "Error: " + e },
         status: "Error",
         responseTime: getResponseTime(),
-        loading: false
+        loading: false,
+        responseHeaders: null,
+        responseCookies: null,
+        responseSize: null
       })
 
       addToHistory(activeRequest)
@@ -418,6 +424,9 @@ function App() {
               response={activeRequest.response || ''}
               status={activeTab?.status || ''}
               responseTime={activeTab?.responseTime}
+              responseHeaders={activeTab?.responseHeaders || null}
+              responseCookies={activeTab?.responseCookies || null}
+              responseSize={activeTab?.responseSize || null}
             />
           </div>
         </div>

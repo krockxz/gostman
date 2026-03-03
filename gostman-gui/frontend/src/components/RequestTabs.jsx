@@ -51,7 +51,7 @@ export function RequestTabs({
     // This ensures that the Send button sends the correctly formatted GraphQL request
     useEffect(() => {
         if (activeTab === 'graphql') {
-            const query = activeRequest.graphqlQuery || activeRequest.body || ''
+            const query = activeRequest.graphqlQuery || ''
             const variables = activeRequest.graphqlVariables || '{}'
 
             // Dynamically import formatGraphQLRequest to avoid circular dependency
@@ -107,7 +107,7 @@ export function RequestTabs({
                 <TabsContent value="graphql" className="h-full p-0" noMargin>
                     <Suspense fallback={<div className="p-8 text-center text-sm text-muted-foreground">Loading GraphQL Module...</div>}>
                         <GraphQLPanel
-                            query={activeRequest.graphqlQuery || activeRequest.body || ''}
+                            query={activeRequest.graphqlQuery || ''}
                             variables={activeRequest.graphqlVariables || '{}'}
                             onQueryChange={(val) => onUpdateField('graphqlQuery', val)}
                             onVariablesChange={(val) => onUpdateField('graphqlVariables', val)}

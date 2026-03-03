@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react"
+import React, { useState, useRef, useCallback, useEffect } from "react"
 import {
     Upload, FileJson, FolderOpen,
     Check, AlertCircle
@@ -7,18 +7,36 @@ import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
 import {
     parsePostmanCollection,
-    detectImportFormat
+    parseOpenAPISpec,
+    detectImportFormat,
+    importGostman
 } from "../lib/importExport"
 
 const IMPORT_FORMATS = [
     { id: 'postman', label: 'Postman', icon: FileJson, description: 'Import Postman collections' },
+    { id: 'openapi', label: 'OpenAPI', icon: FileJson, description: 'Import OpenAPI 3.x specs (JSON/YAML)' },
     { id: 'gostman', label: 'Gostman', icon: FolderOpen, description: 'Import Gostman backup' }
 ]
+
+// Debounce delay in milliseconds
+const DEBOUNCE_DELAY = 300
 
 export function ImportTab({ onImport, onClose }) {
     const [importJson, setImportJson] = useState('')
     const [importResult, setImportResult] = useState(null)
+    const [isParsing, setIsParsing] = useState(false)
     const fileInputRef = useRef(null)
+    const debounceTimerRef = useRef(null)
+
+    // Debounced process function
+    const debouncedProcessImport = useCallback((jsonString) => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current)
+        }
+        debounceTimerRef.current = setTimeout(() => {
+            processImport(jsonString)
+        }, DEBOUNCE_DELAY)
+    }, [])
 
     const handleFileUpload = (e) => {
         const file = e.target.files?.[0]
@@ -35,7 +53,8 @@ export function ImportTab({ onImport, onClose }) {
         reader.readAsText(file)
     }
 
-    const processImport = (jsonString) => {
+    const processImport = async (jsonString) => {
+        setIsParsing(true)
         try {
             const format = detectImportFormat(jsonString)
 
@@ -55,38 +74,60 @@ export function ImportTab({ onImport, onClose }) {
                         error: result.error
                     })
                 }
+            } else if (format === 'openapi') {
+                const result = await parseOpenAPISpec(jsonString)
+                if (result.success) {
+                    setImportResult({
+                        success: true,
+                        format: 'openapi',
+                        requestsCount: result.requests.length,
+                        foldersCount: result.folders.length,
+                        data: result
+                    })
+                } else {
+                    setImportResult({
+                        success: false,
+                        error: result.error
+                    })
+                }
             } else if (format === 'gostman') {
                 try {
                     const data = JSON.parse(jsonString)
-                    setImportResult({
-                        success: true,
-                        format: 'gostman',
-                        requestsCount: data.gostman?.requests?.length || 0,
-                        foldersCount: data.gostman?.folders?.length || 0,
-                        data
-                    })
+                    const result = importGostman(data)
+                    if (result.success) {
+                        setImportResult({
+                            success: true,
+                            format: 'gostman',
+                            requestsCount: result.requests.length,
+                            foldersCount: result.folders.length,
+                            data: result
+                        })
+                    } else {
+                        setImportResult({
+                            success: false,
+                            error: result.error
+                        })
+                    }
                 } catch (err) {
                     setImportResult({
                         success: false,
-                        error: err.message
+                        error: err?.message || 'An unexpected error occurred during import'
                     })
                 }
-            } else if (format === 'unknown') {
-                setImportResult({
-                    success: false,
-                    error: 'Unknown format. Please upload a valid Postman collection or Gostman export.'
-                })
             } else {
                 setImportResult({
                     success: false,
-                    error: `Format "${format}" is not supported yet.`
+                    error: 'Could not detect format. Please upload a valid Postman collection, OpenAPI spec, or Gostman export.'
                 })
             }
         } catch (err) {
             setImportResult({
                 success: false,
-                error: err.message
+                error: err?.message || 'An unexpected error occurred during import'
             })
+            console.error('Import error:', err)
+        } finally {
+            setIsParsing(false)
         }
     }
 
@@ -97,6 +138,15 @@ export function ImportTab({ onImport, onClose }) {
         }
     }
 
+    // Cleanup debounce timer on unmount
+    useEffect(() => {
+        return () => {
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current)
+            }
+        }
+    }, [])
+
     return (
         <div className="space-y-6">
             {/* File Upload */}
@@ -104,7 +154,7 @@ export function ImportTab({ onImport, onClose }) {
                 <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".json"
+                    accept=".json,.yaml,.yml"
                     onChange={handleFileUpload}
                     className="hidden"
                 />
@@ -114,7 +164,7 @@ export function ImportTab({ onImport, onClose }) {
                     </div>
                     <div>
                         <p className="text-sm font-medium">Drop a file here or click to browse</p>
-                        <p className="text-xs text-muted-foreground mt-1">Supports Postman collections and Gostman exports</p>
+                        <p className="text-xs text-muted-foreground mt-1">Supports Postman collections, OpenAPI specs (JSON/YAML), and Gostman exports</p>
                     </div>
                     <Button
                         size="sm"
@@ -136,17 +186,20 @@ export function ImportTab({ onImport, onClose }) {
             <div className="space-y-2">
                 <textarea
                     className="flex min-h-[150px] w-full rounded-md border border-border bg-background/50 backdrop-blur-sm px-3 py-2 text-sm shadow-sm transition-all duration-200 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 font-mono resize-none"
-                    placeholder="Paste Postman collection or Gostman export JSON here..."
+                    placeholder="Paste Postman collection, OpenAPI spec, or Gostman export JSON here..."
                     value={importJson}
                     onChange={(e) => {
                         setImportJson(e.target.value)
                         if (e.target.value.trim()) {
-                            processImport(e.target.value)
+                            debouncedProcessImport(e.target.value)
                         } else {
                             setImportResult(null)
                         }
                     }}
                 />
+                {isParsing && (
+                    <p className="text-xs text-muted-foreground">Parsing...</p>
+                )}
             </div>
 
             {/* Import Result */}
@@ -180,7 +233,7 @@ export function ImportTab({ onImport, onClose }) {
                                     </div>
                                 </div>
                             ) : (
-                                <p className="text-sm text-destructive">{importResult.error}</p>
+                                <p className="text-sm text-destructive whitespace-pre-wrap">{importResult.error}</p>
                             )}
                         </div>
                         {importResult.success && (

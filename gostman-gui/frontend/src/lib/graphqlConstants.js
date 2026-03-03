@@ -1,6 +1,5 @@
 export const GRAPHQL_EXAMPLES = {
-    query: `# GraphQL Query
-query GetUser($userId: ID!) {
+  query: `query GetUser($userId: ID!) {
   user(id: $userId) {
     id
     name
@@ -11,16 +10,14 @@ query GetUser($userId: ID!) {
     }
   }
 }`,
-    mutation: `# GraphQL Mutation
-mutation CreateUser($input: CreateUserInput!) {
+  mutation: `mutation CreateUser($input: CreateUserInput!) {
   createUser(input: $input) {
     id
     name
     email
   }
 }`,
-    subscription: `# GraphQL Subscription
-subscription OnMessageReceived($chatId: ID!) {
+  subscription: `subscription OnMessageReceived($chatId: ID!) {
   messageReceived(chatId: $chatId) {
     id
     content
@@ -31,8 +28,7 @@ subscription OnMessageReceived($chatId: ID!) {
     timestamp
   }
 }`,
-    variables: `# Query Variables
-{
+  variables: `{
   "userId": "1",
   "input": {
     "name": "John Doe",

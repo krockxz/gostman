@@ -287,6 +287,43 @@
 @layer components {
   .json-tree-wrapper {
     @apply text-sm;
+    background: transparent !important;
+  }
+
+  /* Force dark theme for all react-json-view-lite elements */
+  .json-tree-wrapper *,
+  .json-tree-wrapper *::before,
+  .json-tree-wrapper *::after {
+    background-color: transparent !important;
+    background: transparent !important;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  /* Restore specific colors for JSON syntax */
+  .json-tree-wrapper .json-view__key {
+    color: hsl(191 96% 54%) !important;
+    font-weight: 500 !important;
+  }
+
+  .json-tree-wrapper .json-view__string {
+    color: hsl(142 76% 56%) !important;
+  }
+
+  .json-tree-wrapper .json-view__number {
+    color: hsl(25 95% 53%) !important;
+  }
+
+  .json-tree-wrapper .json-view__boolean {
+    color: hsl(280 74% 64%) !important;
+  }
+
+  .json-tree-wrapper .json-view__null {
+    color: hsl(0 84% 60%) !important;
+    font-style: italic !important;
+  }
+
+  .json-tree-wrapper .json-view__punctuation {
+    color: hsl(var(--muted-foreground)) !important;
   }
 
   /* Override react-json-view-lite default styles */
@@ -299,43 +336,12 @@
   .json-tree-wrapper .json-view__row {
     padding: 2px 0 !important;
     transition: background-color 0.15s ease;
+    background: transparent !important;
   }
 
   .json-tree-wrapper .json-view__row:hover {
     background-color: hsl(var(--muted) / 0.3) !important;
     border-radius: 4px;
-  }
-
-  /* Property keys */
-  .json-tree-wrapper .json-view__key {
-    color: hsl(191 96% 54%) !important;
-    font-weight: 500 !important;
-  }
-
-  /* String values */
-  .json-tree-wrapper .json-view__string {
-    color: hsl(142 76% 56%) !important;
-  }
-
-  /* Number values */
-  .json-tree-wrapper .json-view__number {
-    color: hsl(25 95% 53%) !important;
-  }
-
-  /* Boolean values */
-  .json-tree-wrapper .json-view__boolean {
-    color: hsl(280 74% 64%) !important;
-  }
-
-  /* Null values */
-  .json-tree-wrapper .json-view__null {
-    color: hsl(0 84% 60%) !important;
-    font-style: italic !important;
-  }
-
-  /* Brackets and punctuation */
-  .json-tree-wrapper .json-view__punctuation {
-    color: hsl(var(--muted-foreground)) !important;
   }
 
   /* Expand/collapse icons */
@@ -345,6 +351,7 @@
     cursor: pointer !important;
     margin-right: 6px !important;
     transition: transform 0.2s ease, color 0.15s ease !important;
+    background: transparent !important;
   }
 
   .json-tree-wrapper .json-view__expand-icon:hover,
@@ -364,5 +371,23 @@
     color: hsl(var(--muted-foreground) / 0.7) !important;
     font-size: 0.85em !important;
     margin-left: 6px !important;
+  }
+
+  /* Syntax highlighter classes for Raw mode (non-tree view) */
+  .json-key {
+    color: hsl(191 96% 54%) !important;
+    font-weight: 500 !important;
+  }
+  .json-string {
+    color: hsl(142 76% 56%) !important;
+  }
+  .json-number {
+    color: hsl(25 95% 53%) !important;
+  }
+  .json-boolean {
+    color: hsl(280 74% 64%) !important;
+  }
+  .json-null {
+    color: hsl(0 84% 60%) !important;
   }
 }

@@ -23,7 +23,7 @@ import { loadState, saveState, resetState, KEYS } from "./lib/storage"
 import { useAppStore } from "./store/appStore"
 import { parseJSON } from "./lib/dataUtils"
 import { validateEnvVariables } from "./lib/validation"
-import logo from "./assets/logo.svg"
+import logo from "./assets/logo.jpg"
 
 function WebApp() {
   // Zustand store hooks

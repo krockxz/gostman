@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -56,8 +57,26 @@ type Request struct {
 }
 
 type ResponseMsg struct {
-	Body   string `json:"body"`
-	Status string `json:"status"`
+	Body     string        `json:"body"`
+	Status   string        `json:"status"`
+	Headers  []HeaderEntry `json:"headers"`
+	Cookies  []CookieInfo  `json:"cookies"`
+	Size     int64         `json:"size"`
+}
+
+type HeaderEntry struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+type CookieInfo struct {
+	Name     string `json:"name"`
+	Value    string `json:"value"`
+	Domain   string `json:"domain"`
+	Path     string `json:"path"`
+	Expires  string `json:"expires"`
+	Secure   bool   `json:"secure"`
+	HttpOnly bool   `json:"httpOnly"`
 }
 
 // Globals
@@ -169,7 +188,7 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 			updatedHeaders, _ := json.Marshal(headers)
 			headersJSON = string(updatedHeaders)
 		} else {
-			return ResponseMsg{Body: fmt.Sprintf("Error parsing GraphQL Headers JSON: %v", err), Status: "Configuration Error"}
+			return ResponseMsg{Body: fmt.Sprintf("Error parsing GraphQL Headers JSON: %v", err), Status: "Configuration Error", Headers: nil, Cookies: nil, Size: 0}
 		}
 	}
 
@@ -177,7 +196,7 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 	variablesJSON := a.GetVariables()
 	var variables map[string]string
 	if err := json.Unmarshal([]byte(variablesJSON), &variables); err != nil {
-		return ResponseMsg{Body: "Error parsing Env Variables", Status: "Configuration Error"}
+		return ResponseMsg{Body: "Error parsing Env Variables", Status: "Configuration Error", Headers: nil, Cookies: nil, Size: 0}
 	}
 
 	// 2. Variable Substitution
@@ -189,18 +208,18 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 	// 3. Parse Headers
 	var headers map[string]string
 	if err := json.Unmarshal([]byte(headersJSON), &headers); err != nil {
-		return ResponseMsg{Body: "Error parsing Headers. Check JSON format.", Status: "Configuration Error"}
+		return ResponseMsg{Body: "Error parsing Headers. Check JSON format.", Status: "Configuration Error", Headers: nil, Cookies: nil, Size: 0}
 	}
 
 	// 4. Parse Query Params & Build URL
 	if paramsJSON != "" {
 		var params map[string]string
 		if err := json.Unmarshal([]byte(paramsJSON), &params); err != nil {
-			return ResponseMsg{Body: "Error parsing Query Params. Check JSON format.", Status: "Configuration Error"}
+			return ResponseMsg{Body: "Error parsing Query Params. Check JSON format.", Status: "Configuration Error", Headers: nil, Cookies: nil, Size: 0}
 		}
 		parsedURL, err := url.Parse(urlStr)
 		if err != nil {
-			return ResponseMsg{Body: "Invalid URL format.", Status: "Configuration Error"}
+			return ResponseMsg{Body: "Invalid URL format.", Status: "Configuration Error", Headers: nil, Cookies: nil, Size: 0}
 		}
 		q := parsedURL.Query()
 		for key, value := range params {
@@ -224,7 +243,7 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 	}
 
 	if err != nil {
-		return ResponseMsg{Body: "Failed to create request: " + err.Error(), Status: "Error"}
+		return ResponseMsg{Body: "Failed to create request: " + err.Error(), Status: "Error", Headers: nil, Cookies: nil, Size: 0}
 	}
 
 	for key, value := range headers {
@@ -237,16 +256,63 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 	}
 	resp, err := client.Do(req)
 	if err != nil {
-		return ResponseMsg{Body: "Network Error: " + err.Error(), Status: "Error"}
+		return ResponseMsg{Body: "Network Error: " + err.Error(), Status: "Error", Headers: nil, Cookies: nil, Size: 0}
 	}
 	defer resp.Body.Close()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return ResponseMsg{Body: "Failed to read response body: " + err.Error(), Status: "Error"}
+		return ResponseMsg{Body: "Failed to read response body: " + err.Error(), Status: "Error", Headers: nil, Cookies: nil, Size: 0}
 	}
 
-	return ResponseMsg{Body: string(bodyBytes), Status: resp.Status}
+	// Check if response is an image and convert to base64 data URL
+	contentType := resp.Header.Get("Content-Type")
+	var responseBody string
+	if contentType != "" && strings.HasPrefix(strings.ToLower(contentType), "image/") {
+		// Encode image data as base64 and create data URL
+		mimeType := strings.Split(contentType, ";")[0]
+		base64Data := base64.StdEncoding.EncodeToString(bodyBytes)
+		responseBody = fmt.Sprintf("data:%s;base64,%s", mimeType, base64Data)
+	} else {
+		responseBody = string(bodyBytes)
+	}
+
+	// Collect response headers - each key-value pair as a separate entry
+	var respHeaders []HeaderEntry
+	for key, values := range resp.Header {
+		for _, v := range values {
+			respHeaders = append(respHeaders, HeaderEntry{Key: key, Value: v})
+		}
+	}
+
+	// Collect cookies from response
+	var respCookies []CookieInfo
+	for _, cookie := range resp.Cookies() {
+		expiresStr := ""
+		if !cookie.Expires.IsZero() {
+			expiresStr = cookie.Expires.UTC().Format(time.RFC1123)
+		}
+		respCookies = append(respCookies, CookieInfo{
+			Name:     cookie.Name,
+			Value:    cookie.Value,
+			Domain:   cookie.Domain,
+			Path:     cookie.Path,
+			Expires:  expiresStr,
+			Secure:   cookie.Secure,
+			HttpOnly: cookie.HttpOnly,
+		})
+	}
+
+	// Calculate response size
+	size := int64(len(bodyBytes))
+
+	return ResponseMsg{
+		Body:    responseBody,
+		Status:  resp.Status,
+		Headers: respHeaders,
+		Cookies: respCookies,
+		Size:    size,
+	}
 }
 
 func (a *App) GetRequests() []Request {

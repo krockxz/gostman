@@ -3,14 +3,19 @@
  * Supports Postman collections, OpenAPI specs, and Gostman's native format
  *
  * Uses official libraries for robust parsing:
- * - postman-collection: Official Postman SDK
  * - swagger-parser: OpenAPI validation
  * - js-yaml: YAML conversion
+ *
+ * Postman collections are parsed natively (no SDK dependency - avoids lodash issues)
  */
 
-import { Collection } from 'postman-collection'
 import SwaggerParser from 'swagger-parser'
 import YAML from 'js-yaml'
+
+// Constants for magic numbers
+const MAX_RECURSION_DEPTH = 5
+const MAX_TRUNCATION_LENGTH = 50
+const DEBOUNCE_MS = 300
 
 /**
  * Simple UUID generator (using crypto.randomUUID if available, else fallback)
@@ -28,15 +33,42 @@ function generateId() {
 }
 
 /**
- * Extract query parameters from a Postman Url object
- * @param {Object} urlObject - Postman Url object
+ * Encodes a string to UTF-8 for use with btoa (handles Unicode characters)
+ * @param {string} str - String to encode
+ * @returns {string} UTF-8 encoded string safe for btoa
+ */
+function encodeUTF8(str) {
+  return encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (match, p1) =>
+    String.fromCharCode('0x' + p1)
+  )
+}
+
+/**
+ * Extract query parameters from a URL string or object
+ * @param {string|Object} url - URL string or Postman URL object
  * @returns {Object} Query parameters as key-value pairs
  */
-function extractQueryParams(urlObject) {
+function extractQueryParams(url) {
   const queryParams = {}
 
-  if (urlObject.query && urlObject.query.count) {
-    urlObject.query.each(param => {
+  if (typeof url === 'string') {
+    // Parse query params from URL string
+    try {
+      const urlObj = new URL(url)
+      urlObj.searchParams.forEach((value, key) => {
+        queryParams[key] = value
+      })
+    } catch (err) {
+      // Invalid URL, return empty
+      console.warn('Failed to parse URL for query params:', err.message)
+    }
+    return queryParams
+  }
+
+  // Handle Postman URL object format
+  if (url && url.query) {
+    const queryList = Array.isArray(url.query) ? url.query : []
+    queryList.forEach(param => {
       if (!param.disabled && param.key) {
         queryParams[param.key] = param.value || ''
       }
@@ -47,22 +79,22 @@ function extractQueryParams(urlObject) {
 }
 
 /**
- * Extract headers from a Postman RequestHeaderList
- * @param {Object} headerList - Postman RequestHeaderList
+ * Extract headers from a headers array
+ * @param {Array} headers - Array of header objects
  * @returns {Object} Headers as key-value pairs
  */
-function extractHeaders(headerList) {
-  const headers = {}
+function extractHeaders(headers) {
+  const result = {}
 
-  if (headerList && headerList.count) {
-    headerList.each(header => {
-      if (!header.disabled && header.key) {
-        headers[header.key] = header.value || ''
-      }
-    })
-  }
+  if (!Array.isArray(headers)) return result
 
-  return headers
+  headers.forEach(header => {
+    if (!header.disabled && header.key) {
+      result[header.key] = header.value || ''
+    }
+  })
+
+  return result
 }
 
 /**
@@ -79,8 +111,8 @@ function extractBody(requestBody) {
 
     case 'urlencoded':
       const formData = {}
-      if (requestBody.urlencoded) {
-        requestBody.urlencoded.each(param => {
+      if (Array.isArray(requestBody.urlencoded)) {
+        requestBody.urlencoded.forEach(param => {
           if (!param.disabled && param.key) {
             formData[param.key] = param.value || ''
           }
@@ -90,8 +122,8 @@ function extractBody(requestBody) {
 
     case 'formdata':
       const form = {}
-      if (requestBody.formdata) {
-        requestBody.formdata.each(param => {
+      if (Array.isArray(requestBody.formdata)) {
+        requestBody.formdata.forEach(param => {
           if (!param.disabled && param.key) {
             form[param.key] = param.value || ''
           }
@@ -101,7 +133,12 @@ function extractBody(requestBody) {
 
     case 'graphql':
       if (requestBody.graphql) {
-        return requestBody.graphql.toString()
+        if (typeof requestBody.graphql === 'string') {
+          return requestBody.graphql
+        }
+        if (requestBody.graphql.query) {
+          return JSON.stringify({ query: requestBody.graphql.query }, null, 2)
+        }
       }
       return ''
 
@@ -111,99 +148,155 @@ function extractBody(requestBody) {
 }
 
 /**
- * Converts a Postman collection to Gostman requests using the official SDK
- * @param {Object|string} postmanCollection - Parsed Postman collection JSON or Collection instance
+ * Get URL from Postman request URL object
+ * @param {string|Object} url - URL string or Postman URL object
+ * @returns {string} Full URL string
+ */
+function getUrlString(url) {
+  if (typeof url === 'string') return url
+
+  // Handle Postman URL object format
+  if (url && url.raw) return url.raw
+
+  // Build URL from parts
+  if (url && url.protocol && url.host) {
+    // Ensure protocol doesn't already contain ://
+    const protocol = url.protocol.endsWith('://') ? url.protocol : url.protocol + '://'
+    let urlString = protocol + (Array.isArray(url.host) ? url.host.join('.') : url.host)
+    if (url.port) urlString += ':' + url.port
+    if (url.path) urlString += '/' + url.path.join('/')
+    if (url.query && url.query.length > 0) {
+      const params = url.query.filter(p => !p.disabled).map(p =>
+        `${encodeURIComponent(p.key)}=${encodeURIComponent(p.value || '')}`
+      )
+      urlString += '?' + params.join('&')
+    }
+    return urlString
+  }
+
+  return ''
+}
+
+/**
+ * Recursively processes Postman collection items
+ * @param {Array} items - Array of Postman items
+ * @param {string|null} parentFolderId - Parent folder ID
+ * @param {Array} requests - Accumulator for requests
+ * @param {Array} folders - Accumulator for folders
+ * @param {Set} usedIds - Set of already used IDs to prevent duplicates
+ */
+function processPostmanItems(items, parentFolderId, requests, folders, usedIds = new Set()) {
+  if (!Array.isArray(items)) return
+
+  items.forEach(item => {
+    // Check if it's a folder (has items array)
+    if (item.item && Array.isArray(item.item)) {
+      let folderId = item.id || generateId()
+      // Ensure unique ID
+      while (usedIds.has(folderId)) {
+        folderId = generateId()
+      }
+      usedIds.add(folderId)
+
+      folders.push({
+        id: folderId,
+        name: item.name || 'Folder',
+        isOpen: false,
+        parentId: parentFolderId,
+        description: item.description || ''
+      })
+      processPostmanItems(item.item, folderId, requests, folders, usedIds)
+    }
+    // Check if it's a request (has request object)
+    else if (item.request) {
+      const request = item.request
+
+      // Get URL
+      const url = getUrlString(request.url)
+
+      // Extract query parameters
+      const queryParams = extractQueryParams(request.url)
+
+      // Extract headers
+      const headers = extractHeaders(request.header || [])
+
+      // Add auth headers if present and not disabled
+      if (request.auth && !request.auth.disabled && request.auth.type) {
+        if (request.auth.type === 'bearer' && request.auth.token) {
+          // Handle both array and single object formats
+          let token = '{{token}}'
+          if (Array.isArray(request.auth.token) && request.auth.token[0]) {
+            token = request.auth.token[0].value || token
+          } else if (typeof request.auth.token === 'string') {
+            token = request.auth.token
+          } else if (request.auth.token?.value) {
+            token = request.auth.token.value
+          }
+          headers['Authorization'] = `Bearer ${token}`
+        } else if (request.auth.type === 'basic' && request.auth.basic) {
+          // Handle both array and single object formats
+          const basicAuth = Array.isArray(request.auth.basic) ? request.auth.basic[0] : request.auth.basic
+          const username = basicAuth?.value || '{{username}}'
+          const password = basicAuth?.password?.value || basicAuth?.password || '{{password}}'
+          // Handle Unicode in credentials
+          headers['Authorization'] = `Basic ${btoa(encodeUTF8(username + ':' + password))}`
+        } else if (request.auth.type === 'apikey' && request.auth.apikey) {
+          const apikeyAuth = Array.isArray(request.auth.apikey) ? request.auth.apikey[0] : request.auth.apikey
+          if (apikeyAuth?.key) {
+            headers[apikeyAuth.key] = apikeyAuth.value || '{{apiKey}}'
+          }
+        }
+      }
+
+      // Extract body
+      const body = extractBody(request.body)
+
+      // Ensure unique request ID
+      let requestId = item.id || generateId()
+      while (usedIds.has(requestId)) {
+        requestId = generateId()
+      }
+      usedIds.add(requestId)
+
+      requests.push({
+        id: requestId,
+        name: item.name || request.name || 'Untitled Request',
+        url,
+        method: (request.method || 'GET').toUpperCase(),
+        headers: JSON.stringify(headers, null, 2),
+        body,
+        queryParams: JSON.stringify(queryParams, null, 2),
+        response: '',
+        folderId: parentFolderId,
+        description: item.description || request.description || '',
+        createdAt: new Date().toISOString()
+      })
+    }
+  })
+}
+
+/**
+ * Converts a Postman collection to Gostman requests (native parser, no SDK dependency)
+ * @param {Object|string} postmanCollection - Parsed Postman collection JSON
  * @returns {Object} Object with requests array, folders array, and collection name
  */
 export function importPostmanCollection(postmanCollection) {
+  const data = typeof postmanCollection === 'string' ? JSON.parse(postmanCollection) : postmanCollection
+
   const requests = []
   const folders = []
+  const usedIds = new Set()
 
-  // Use official Postman Collection SDK
-  const collection = postmanCollection instanceof Collection
-    ? postmanCollection
-    : new Collection(postmanCollection)
+  const collectionName = data?.info?.name || 'Imported Collection'
 
-  const collectionName = collection.name || 'Imported Collection'
-
-  /**
-   * Recursively process ItemGroups (folders) and Items (requests)
-   * @param {Object} itemGroup - Postman ItemGroup
-   * @param {string|null} parentFolderId - Parent folder ID for nested structures
-   */
-  function processItemGroup(itemGroup, parentFolderId = null) {
-    itemGroup.each(item => {
-      if (item.items) {
-        // This is an ItemGroup (folder)
-        const folderId = generateId()
-        folders.push({
-          id: folderId,
-          name: item.name || item.id || 'Folder',
-          isOpen: false,
-          parentId: parentFolderId,
-          description: item.description || ''
-        })
-
-        // Process nested items
-        processItemGroup(item, folderId)
-      } else {
-        // This is an Item (request)
-        const request = item.request
-
-        if (!request) return
-
-        // Get URL string
-        const url = request.url?.toString() || ''
-
-        // Extract query parameters
-        let queryParams = {}
-        if (request.url && request.url.query) {
-          queryParams = extractQueryParams(request.url)
-        }
-
-        // Extract headers
-        let headers = {}
-        if (request.headers) {
-          headers = extractHeaders(request.headers)
-        }
-
-        // Add auth headers if present
-        if (request.auth && request.auth.parameters) {
-          request.auth.parameters.each(param => {
-            if (!param.disabled && param.key) {
-              headers[param.key] = param.value || ''
-            }
-          })
-        }
-
-        // Extract body
-        const body = extractBody(request.body)
-
-        requests.push({
-          id: item.id || generateId(),
-          name: item.name || request.url?.getPath() || 'Untitled Request',
-          url,
-          method: request.method || 'GET',
-          headers: JSON.stringify(headers, null, 2),
-          body,
-          queryParams: JSON.stringify(queryParams, null, 2),
-          response: '',
-          folderId: parentFolderId,
-          description: item.description || request.description || '',
-          createdAt: new Date().toISOString()
-        })
-      }
-    })
-  }
-
-  // Start processing from collection's items
-  processItemGroup(collection.items)
+  // Process items (can be at root or nested)
+  processPostmanItems(data.item || [], null, requests, folders, usedIds)
 
   return { requests, folders, collectionName }
 }
 
 /**
- * Parses a Postman collection JSON string using the official SDK
+ * Parses a Postman collection JSON string (native parser, no SDK dependency)
  * @param {string} jsonString - JSON string of Postman collection
  * @returns {Object} Parsed result with requests and folders
  */
@@ -211,11 +304,16 @@ export function parsePostmanCollection(jsonString) {
   try {
     const data = typeof jsonString === 'string' ? JSON.parse(jsonString) : jsonString
 
-    // Validate using Postman SDK (will throw if invalid)
-    const collection = new Collection(data)
+    // Basic validation - check if it looks like a Postman collection
+    if (!data || !data.info || !data.info.schema) {
+      return {
+        success: false,
+        error: 'Invalid Postman collection format'
+      }
+    }
 
-    // Import using the validated collection
-    const result = importPostmanCollection(collection)
+    // Import the collection
+    const result = importPostmanCollection(data)
 
     return {
       success: true,
@@ -230,12 +328,463 @@ export function parsePostmanCollection(jsonString) {
 }
 
 /**
+ * Builds security header templates from OpenAPI security schemes
+ * @param {Object} securitySchemes - OpenAPI components.securitySchemes
+ * @returns {Object} Headers object with authorization templates
+ */
+function buildSecurityHeaders(securitySchemes = {}) {
+  const headers = {}
+
+  Object.entries(securitySchemes).forEach(([, scheme]) => {
+    if (scheme.type === 'http') {
+      if (scheme.scheme === 'bearer') {
+        headers['Authorization'] = 'Bearer {{token}}'
+      } else if (scheme.scheme === 'basic') {
+        headers['Authorization'] = 'Basic {{credentials}}'
+      }
+    } else if (scheme.type === 'apiKey') {
+      if (scheme.in === 'header') {
+        headers[scheme.name] = '{{apiKey}}'
+      }
+    } else if (scheme.type === 'oauth2') {
+      headers['Authorization'] = 'Bearer {{accessToken}}'
+    } else if (scheme.type === 'openIdConnect') {
+      headers['Authorization'] = 'Bearer {{idToken}}'
+    }
+  })
+
+  return headers
+}
+
+/**
+ * Extracts query parameters from an OpenAPI operation
+ * @param {Object} operation - OpenAPI operation object
+ * @param {Array} pathParameters - Path-level parameters to merge
+ * @returns {Object} Query parameters as key-value pairs
+ */
+function extractOpenAPIQueryParams(operation = {}, pathParameters = []) {
+  const queryParams = {}
+
+  // Merge path-level and operation-level parameters (operation overrides path)
+  const paramMap = new Map()
+
+  // Add path-level parameters first
+  ;(pathParameters || [])
+    .filter(p => p && p.in === 'query')
+    .forEach(param => paramMap.set(param.name, param))
+
+  // Override with operation-level parameters
+  ;(operation.parameters || [])
+    .filter(p => p && p.in === 'query')
+    .forEach(param => paramMap.set(param.name, param))
+
+  // Convert to query params object
+  paramMap.forEach(param => {
+    const value = param.example ||
+                  param.schema?.example ||
+                  getExampleValueFromSchema(param.schema)
+    queryParams[param.name] = value !== undefined ? String(value) : ''
+  })
+
+  return queryParams
+}
+
+/**
+ * Extracts headers from an OpenAPI operation
+ * @param {Object} operation - OpenAPI operation object
+ * @param {Array} pathParameters - Path-level parameters to merge
+ * @returns {Object} Headers as key-value pairs
+ */
+function extractOpenAPIHeaders(operation = {}, pathParameters = []) {
+  const headers = {}
+
+  // Merge path-level and operation-level parameters (operation overrides path)
+  const paramMap = new Map()
+
+  // Add path-level parameters first
+  ;(pathParameters || [])
+    .filter(p => p && p.in === 'header')
+    .forEach(param => paramMap.set(param.name, param))
+
+  // Override with operation-level parameters
+  ;(operation.parameters || [])
+    .filter(p => p && p.in === 'header')
+    .forEach(param => paramMap.set(param.name, param))
+
+  // Convert to headers object
+  paramMap.forEach(param => {
+    const value = param.example ||
+                  param.schema?.example ||
+                  getExampleValueFromSchema(param.schema)
+    if (value !== undefined) {
+      headers[param.name] = String(value)
+    }
+  })
+
+  return headers
+}
+
+/**
+ * Builds request body from OpenAPI requestBody
+ * @param {Object} requestBody - OpenAPI request body
+ * @returns {string} Body as string
+ */
+function buildOpenAPIBody(requestBody) {
+  if (!requestBody) return ''
+
+  // Try application/json first
+  const jsonContent = requestBody.content?.['application/json']
+  if (jsonContent) {
+    // Use example if available
+    if (jsonContent.example !== undefined) {
+      return typeof jsonContent.example === 'string'
+        ? jsonContent.example
+        : JSON.stringify(jsonContent.example, null, 2)
+    }
+
+    // Try examples (OpenAPI 3.1)
+    if (jsonContent.examples) {
+      const firstExample = Object.values(jsonContent.examples)[0]
+      if (firstExample?.value !== undefined) {
+        return typeof firstExample.value === 'string'
+          ? firstExample.value
+          : JSON.stringify(firstExample.value, null, 2)
+      }
+    }
+
+    // Generate from schema
+    if (jsonContent.schema) {
+      return generateExampleFromSchema(jsonContent.schema)
+    }
+  }
+
+  // Try first available content type
+  const firstContent = Object.values(requestBody.content || {})[0]
+  if (firstContent) {
+    if (firstContent.example !== undefined) {
+      return typeof firstContent.example === 'string'
+        ? firstContent.example
+        : JSON.stringify(firstContent.example, null, 2)
+    }
+    if (firstContent.schema) {
+      return generateExampleFromSchema(firstContent.schema)
+    }
+  }
+
+  return ''
+}
+
+/**
+ * Gets an example value from an OpenAPI schema
+ * @param {Object} schema - OpenAPI schema object
+ * @returns {any} Example value
+ */
+function getExampleValueFromSchema(schema) {
+  if (!schema) return undefined
+
+  if (schema.example !== undefined) return schema.example
+  if (schema.default !== undefined) return schema.default
+
+  // Simple type inference
+  switch (schema.type) {
+    case 'string':
+      return schema.enum?.[0] ||
+             schema.format === 'email' ? 'user@example.com' :
+             schema.format === 'uuid' ? '550e8400-e29b-41d4-a716-446655440000' :
+             schema.format === 'uri' ? 'https://example.com' :
+             schema.format === 'date' ? '2024-01-01' :
+             schema.format === 'date-time' ? '2024-01-01T00:00:00Z' :
+             'string'
+    case 'number':
+    case 'integer':
+      return schema.minimum ?? schema.default ?? 0
+    case 'boolean':
+      return schema.default !== undefined ? schema.default : true
+    case 'array':
+      return []
+    case 'object':
+      // Handle objects with properties but no explicit type
+      return schema.properties ? {} : undefined
+    default:
+      // If no type specified but has properties, treat as object
+      if (schema.properties) return {}
+      return undefined
+  }
+}
+
+/**
+ * Generates a JSON example from an OpenAPI schema
+ * @param {Object} schema - OpenAPI schema object
+ * @param {number} depth - Current recursion depth
+ * @returns {string} JSON string of generated example
+ */
+function generateExampleFromSchema(schema, depth = 0) {
+  if (depth > MAX_RECURSION_DEPTH) {
+    return '{}'
+  }
+
+  if (!schema) return '{}'
+
+  function generate(schema, currentDepth) {
+    if (currentDepth > MAX_RECURSION_DEPTH) {
+      return null
+    }
+
+    // Handle $ref by returning placeholder
+    if (schema.$ref) {
+      return null
+    }
+
+    // Handle allOf, anyOf, oneOf
+    if (schema.allOf) {
+      const result = {}
+      schema.allOf.forEach(sub => {
+        Object.assign(result, generate(sub, currentDepth + 1))
+      })
+      return result
+    }
+
+    if (schema.anyOf || schema.oneOf) {
+      const schemas = schema.anyOf || schema.oneOf
+      return generate(schemas[0] || {}, currentDepth + 1)
+    }
+
+    const schemaType = schema.type || (schema.properties ? 'object' : undefined)
+
+    switch (schemaType) {
+      case 'string': {
+        const example = getExampleValueFromSchema(schema)
+        return example !== undefined ? example : 'string'
+      }
+      case 'number':
+      case 'integer': {
+        const example = getExampleValueFromSchema(schema)
+        return example !== undefined ? example : 0
+      }
+      case 'boolean':
+        return schema.default !== undefined ? schema.default : true
+      case 'array': {
+        if (schema.items) {
+          return [generate(schema.items, currentDepth + 1)]
+        }
+        return []
+      }
+      case 'object': {
+        if (!schema.properties) return {}
+        const obj = {}
+        Object.entries(schema.properties).forEach(([key, propSchema]) => {
+          // Include required properties or those with defaults/examples
+          if (schema.required?.includes(key) ||
+              propSchema.default !== undefined ||
+              propSchema.example !== undefined) {
+            obj[key] = generate(propSchema, currentDepth + 1)
+          }
+        })
+        // If object is empty, add at least one property for reference
+        if (Object.keys(obj).length === 0) {
+          const firstKey = Object.keys(schema.properties)[0]
+          if (firstKey) {
+            obj[firstKey] = generate(schema.properties[firstKey], currentDepth + 1)
+          }
+        }
+        return obj
+      }
+      default:
+        return {}
+    }
+  }
+
+  return JSON.stringify(generate(schema, depth), null, 2)
+}
+
+/**
+ * Converts an OpenAPI 3.x spec to Gostman requests
+ * @param {Object} openapiSpec - Validated OpenAPI spec object
+ * @returns {Object} Object with requests array, folders array, and collection name
+ */
+export function importOpenAPISpec(openapiSpec) {
+  const requests = []
+  const folders = []
+
+  // Reject Swagger 2.0
+  if (openapiSpec.swagger && !openapiSpec.openapi) {
+    throw new Error('Swagger 2.0 is not supported. Please use OpenAPI 3.x.')
+  }
+
+  // Extract collection info
+  const collectionName = openapiSpec.info?.title || 'Imported OpenAPI Spec'
+
+  // Get base URL from first server
+  const baseUrl = openapiSpec.servers?.[0]?.url || ''
+
+  // Create folders from tags
+  const tagFolderMap = new Map()
+  const tags = openapiSpec.tags || []
+
+  tags.forEach(tag => {
+    const folderId = generateId()
+    tagFolderMap.set(tag.name, folderId)
+    folders.push({
+      id: folderId,
+      name: tag.name,
+      isOpen: false,
+      parentId: null,
+      description: tag.description || ''
+    })
+  })
+
+  // Build security scheme headers
+  const securityHeaders = buildSecurityHeaders(openapiSpec.components?.securitySchemes || {})
+
+  // Process paths
+  Object.entries(openapiSpec.paths || {}).forEach(([path, pathItem]) => {
+    // Keep path as-is with {param} format
+    const fullPath = baseUrl + path
+
+    // Get path-level parameters (shared across all methods in this path)
+    const pathParameters = pathItem.parameters || []
+
+    // Process each HTTP method
+    const httpMethods = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace']
+
+    httpMethods.forEach(method => {
+      const operation = pathItem[method]
+      if (!operation) return
+
+      // Determine folder from tags (use first tag)
+      const folderId = operation.tags?.[0]
+        ? tagFolderMap.get(operation.tags[0]) || null
+        : null
+
+      // Build query parameters (merge path-level and operation-level)
+      const queryParams = extractOpenAPIQueryParams(operation, pathParameters)
+
+      // Build headers (operation-level first, then security headers override)
+      // This ensures security scheme templates take precedence
+      const headers = {
+        ...extractOpenAPIHeaders(operation, pathParameters),
+        ...securityHeaders
+      }
+
+      // Build body
+      const body = buildOpenAPIBody(operation.requestBody)
+
+      // Store schema metadata for future use
+      const metadata = {
+        openapi: {
+          operationId: operation.operationId,
+          schema: operation.requestBody?.content?.['application/json']?.schema,
+          parameters: operation.parameters,
+          responses: operation.responses?.[200]?.content?.['application/json']?.schema
+        }
+      }
+
+      requests.push({
+        id: generateId(),
+        name: operation.summary || operation.operationId || `${method.toUpperCase()} ${path}`,
+        url: fullPath,
+        method: method.toUpperCase(),
+        headers: JSON.stringify(headers, null, 2),
+        body,
+        queryParams: JSON.stringify(queryParams, null, 2),
+        response: '',
+        folderId,
+        description: operation.description || '',
+        createdAt: new Date().toISOString(),
+        metadata: JSON.stringify(metadata)
+      })
+    })
+  })
+
+  return { requests, folders, collectionName }
+}
+
+/**
+ * Parses an OpenAPI spec string (JSON or YAML) and converts to Gostman format
+ * @param {string} specString - OpenAPI spec as JSON or YAML string
+ * @returns {Promise<Object>} Parsed result with success flag, requests, folders, and error if failed
+ */
+export async function parseOpenAPISpec(specString) {
+  try {
+    // Validate input is not empty
+    if (!specString || typeof specString !== 'string' || !specString.trim()) {
+      return {
+        success: false,
+        error: 'Empty or invalid input'
+      }
+    }
+
+    let spec
+
+    // Try JSON first
+    try {
+      spec = JSON.parse(specString)
+    } catch {
+      // Try YAML
+      spec = parseYAML(specString)
+    }
+
+    // Validate we got a proper object
+    if (!spec || typeof spec !== 'object') {
+      return {
+        success: false,
+        error: 'Invalid OpenAPI spec: could not parse as JSON or YAML'
+      }
+    }
+
+    // Validate and ensure it's OpenAPI 3.x
+    if (spec.openapi && !spec.openapi.startsWith('3')) {
+      return {
+        success: false,
+        error: 'Only OpenAPI 3.x is supported. Found version: ' + spec.openapi
+      }
+    }
+
+    if (spec.swagger) {
+      return {
+        success: false,
+        error: 'Swagger 2.0 is not supported. Please use OpenAPI 3.x.'
+      }
+    }
+
+    // Validate using swagger-parser
+    const validation = await validateOpenAPI(spec)
+    if (!validation.valid) {
+      // Show all validation errors, not just the first one
+      const errorMessages = validation.errors?.map(e => `- ${e.message}`).join('\n') || 'Unknown error'
+      return {
+        success: false,
+        error: 'Invalid OpenAPI spec:\n' + errorMessages
+      }
+    }
+
+    // Import the validated spec
+    const result = importOpenAPISpec(validation.spec)
+
+    return {
+      success: true,
+      ...result
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message || 'Invalid OpenAPI format'
+    }
+  }
+}
+
+/**
  * Converts Gostman requests to OpenAPI 3.0 specification
  * @param {Array} requests - Gostman request objects
  * @param {Object} options - Export options
  * @returns {Object} OpenAPI 3.0 specification
  */
 export function exportToOpenAPI(requests, options = {}) {
+  // Validate requests is an array
+  if (!Array.isArray(requests)) {
+    requests = []
+  }
+
   const {
     title = 'Gostman API Collection',
     version = '1.0.0',
@@ -258,11 +807,34 @@ export function exportToOpenAPI(requests, options = {}) {
     }
   }
 
+  // Helper to infer type from value
+  const inferType = (val) => {
+    if (Array.isArray(val)) return 'array'
+    if (typeof val === 'boolean') return 'boolean'
+    if (typeof val === 'number') return 'number'
+    return 'string'
+  }
+
+  // Helper to convert headers to lowercase for case-insensitive comparison
+  const normalizeHeaders = (headers) => {
+    const normalized = {}
+    Object.entries(headers).forEach(([key, value]) => {
+      normalized[key.toLowerCase()] = { key, value }
+    })
+    return normalized
+  }
+
   // Group requests by path and method
   const pathsMap = new Map()
 
   requests.forEach(request => {
     if (!request.url) return
+
+    // Validate method early
+    const method = (request.method || 'GET').toLowerCase()
+    if (!['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace'].includes(method)) {
+      return
+    }
 
     // Parse URL to extract path
     let path = request.url
@@ -270,8 +842,8 @@ export function exportToOpenAPI(requests, options = {}) {
       const urlObj = new URL(request.url)
       path = urlObj.pathname
 
-      // Add server if not present and we found one
-      if (!baseUrl && urlObj.origin) {
+      // Always check for duplicate server URLs
+      if (urlObj.origin) {
         const existingServer = spec.servers.find(s => s.url === urlObj.origin)
         if (!existingServer) {
           spec.servers.push({ url: urlObj.origin })
@@ -279,13 +851,12 @@ export function exportToOpenAPI(requests, options = {}) {
       }
     } catch {
       // If URL is not absolute, use as-is
-      path = request.url.startsWith('/') ? request.url : '/' + request.url
+      path = path.startsWith('/') ? path : '/' + path
     }
 
-    // Ensure path starts with /
-    if (!path.startsWith('/')) {
-      path = '/' + path
-    }
+    // Ensure path starts with / and normalize duplicate slashes
+    path = path.startsWith('/') ? path : '/' + path
+    path = path.replace(/\/+/g, '/')
 
     // Normalize path parameters (e.g., :id to {id})
     path = path.replace(/:([a-zA-Z0-9_]+)/g, '{$1}')
@@ -295,22 +866,21 @@ export function exportToOpenAPI(requests, options = {}) {
     }
 
     const pathObj = pathsMap.get(path)
-    const method = (request.method || 'GET').toLowerCase()
 
-    // Skip if method is invalid
-    if (!['get', 'post', 'put', 'delete', 'patch', 'options', 'head', 'trace'].includes(method)) {
-      return
-    }
-
-    // Parse headers
+    // Parse headers with case-insensitive access
     let headers = {}
     try {
       headers = JSON.parse(request.headers || '{}')
-    } catch { }
+    } catch (err) {
+      console.warn('Failed to parse headers for request:', request.name, err.message)
+    }
 
-    // Detect authentication from headers
-    if (headers['Authorization'] || headers['authorization']) {
-      const authValue = headers['Authorization'] || headers['authorization']
+    const normalizedHeaders = normalizeHeaders(headers)
+
+    // Detect authentication from headers (case-insensitive)
+    const authHeader = normalizedHeaders['authorization']
+    if (authHeader) {
+      const authValue = authHeader.value
       if (authValue.startsWith('Bearer ')) {
         spec.components.securitySchemes.bearerAuth = {
           type: 'http',
@@ -326,7 +896,7 @@ export function exportToOpenAPI(requests, options = {}) {
         spec.components.securitySchemes.apiKeyAuth = {
           type: 'apiKey',
           in: 'header',
-          name: 'Authorization'
+          name: authHeader.key
         }
       }
     }
@@ -338,10 +908,12 @@ export function exportToOpenAPI(requests, options = {}) {
       queryParams = Object.entries(params).map(([key, value]) => ({
         name: key,
         in: 'query',
-        schema: { type: typeof value === 'number' ? 'number' : 'string', example: value },
+        schema: { type: inferType(value), example: value },
         required: false
       }))
-    } catch { }
+    } catch (err) {
+      console.warn('Failed to parse query params for request:', request.name, err.message)
+    }
 
     // Extract path params from URL
     const pathParams = []
@@ -364,8 +936,9 @@ export function exportToOpenAPI(requests, options = {}) {
     let requestBody = undefined
     if (request.body && request.body.trim()) {
       let contentType = 'application/json'
-      if (headers['Content-Type']) {
-        contentType = headers['Content-Type'].split(';')[0]
+      const contentTypeHeader = normalizedHeaders['content-type']
+      if (contentTypeHeader) {
+        contentType = contentTypeHeader.value.split(';')[0]
       }
 
       let bodySchema = { type: 'string' }
@@ -376,7 +949,9 @@ export function exportToOpenAPI(requests, options = {}) {
           const parsed = JSON.parse(request.body)
           bodySchema = inferSchemaFromObject(parsed)
           bodyExample = parsed
-        } catch { }
+        } catch (err) {
+          console.warn('Failed to parse request body as JSON:', err.message)
+        }
       }
 
       requestBody = {
@@ -423,9 +998,10 @@ export function exportToOpenAPI(requests, options = {}) {
 /**
  * Infers JSON Schema from a JavaScript object
  * @param {any} obj - Object to infer schema from
+ * @param {WeakSet} seen - Set of already seen objects for circular reference detection
  * @returns {Object} JSON Schema
  */
-function inferSchemaFromObject(obj) {
+function inferSchemaFromObject(obj, seen = new WeakSet()) {
   if (obj === null) return { type: 'null' }
   if (typeof obj === 'string') return { type: 'string' }
   if (typeof obj === 'number') return { type: 'number' }
@@ -435,18 +1011,24 @@ function inferSchemaFromObject(obj) {
     if (obj.length > 0) {
       return {
         type: 'array',
-        items: inferSchemaFromObject(obj[0])
+        items: inferSchemaFromObject(obj[0], seen)
       }
     }
     return { type: 'array', items: {} }
   }
 
   if (typeof obj === 'object') {
+    // Check for circular reference
+    if (seen.has(obj)) {
+      return { type: 'object', description: '[Circular reference]' }
+    }
+    seen.add(obj)
+
     const properties = {}
     const required = []
 
     Object.entries(obj).forEach(([key, value]) => {
-      properties[key] = inferSchemaFromObject(value)
+      properties[key] = inferSchemaFromObject(value, seen)
       if (value !== null && value !== undefined && value !== '') {
         required.push(key)
       }
@@ -523,131 +1105,147 @@ export function exportToOpenAPIYAML(requests, options = {}) {
 }
 
 /**
- * Converts Gostman requests to Postman collection format using the SDK
+ * Converts Gostman requests to Postman collection format (native, no SDK dependency)
  * @param {Array} requests - Gostman request objects
  * @param {Array} folders - Gostman folder objects
  * @param {Object} options - Export options
  * @returns {Object} Postman collection v2.1
  */
 export function exportToPostman(requests, folders = [], options = {}) {
+  // Validate inputs
+  if (!Array.isArray(requests)) {
+    requests = []
+  }
+  if (!Array.isArray(folders)) {
+    folders = []
+  }
+
   const {
     name = 'Gostman Collection',
     description = 'Collection exported from Gostman'
   } = options
 
-  // Use Postman SDK to create a proper collection
-  const collection = new Collection({
-    info: {
-      name,
-      description,
-      schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
-    },
-    item: []
-  })
-
+  // Build folder map for quick lookup
   const folderMap = new Map()
-
-  // Create folder structure first
   folders.forEach(folder => {
-    const itemGroup = new Collection.ItemGroup({
-      id: folder.id,
-      name: folder.name,
-      description: folder.description || ''
-    })
-    folderMap.set(folder.id, itemGroup)
+    folderMap.set(folder.id, { ...folder, items: [] })
   })
 
   // Group requests by folder
+  const rootItems = []
   const folderRequests = new Map()
-  const rootRequests = []
 
   requests.forEach(request => {
-    const postmanRequest = new Collection.Request({
-      method: request.method || 'GET',
-      header: [],
-      body: {
-        mode: 'raw',
-        raw: request.body || ''
-      }
-    })
-
-    // Set URL
-    if (request.url) {
-      postmanRequest.url = new Collection.Url(request.url)
+    const item = {
+      name: request.name || 'Untitled Request',
+      request: {
+        method: request.method || 'GET',
+        header: [],
+        url: {
+          raw: request.url || '',
+          query: []
+        },
+        body: {
+          mode: 'raw',
+          raw: request.body || ''
+        }
+      },
+      description: request.description || '',
+      response: []
     }
 
-    // Add headers
+    // Parse and add headers
     try {
       const headers = JSON.parse(request.headers || '{}')
-      Object.entries(headers).forEach(([key, value]) => {
-        postmanRequest.headers.add({
-          key,
-          value: String(value)
-        })
-      })
-    } catch { }
+      item.request.header = Object.entries(headers).map(([key, value]) => ({
+        key,
+        value: String(value),
+        type: 'text'
+      }))
+    } catch (err) {
+      console.warn('Failed to parse headers for Postman export:', err.message)
+    }
 
-    // Add query params
+    // Parse and add query parameters
     try {
       const params = JSON.parse(request.queryParams || '{}')
-      Object.entries(params).forEach(([key, value]) => {
-        if (postmanRequest.url && postmanRequest.url.query) {
-          postmanRequest.url.query.add({
-            key,
-            value: String(value)
-          })
-        }
-      })
-    } catch { }
+      item.request.url.query = Object.entries(params).map(([key, value]) => ({
+        key,
+        value: String(value)
+      }))
+    } catch (err) {
+      console.warn('Failed to parse query params for Postman export:', err.message)
+    }
 
     // Set body mode based on content
     if (request.body && request.body.trim()) {
       const trimmed = request.body.trim()
       if (trimmed.startsWith('{')) {
-        postmanRequest.body = new Collection.RequestBody({
-          mode: 'raw',
-          raw: request.body,
-          options: { raw: { language: 'json' } }
-        })
+        item.request.body.options = { raw: { language: 'json' } }
       }
     }
 
-    // Create item
-    const item = new Collection.Item({
-      name: request.name || 'Untitled Request',
-      request: postmanRequest,
-      description: request.description || ''
-    })
-
+    // Add to appropriate folder or root
     if (request.folderId && folderMap.has(request.folderId)) {
       if (!folderRequests.has(request.folderId)) {
         folderRequests.set(request.folderId, [])
       }
       folderRequests.get(request.folderId).push(item)
     } else {
-      rootRequests.push(item)
+      rootItems.push(item)
     }
   })
 
-  // Build collection structure
-  // Add root requests
-  rootRequests.forEach(item => collection.items.add(item))
+  // Build the item hierarchy
+  const buildItemHierarchy = (folderId) => {
+    const folder = folderMap.get(folderId)
+    if (!folder) return []
 
-  // Add folders with their requests
-  folders.forEach(folder => {
-    const folderItems = folderRequests.get(folder.id) || []
-    if (folderItems.length > 0) {
-      const itemGroup = new Collection.ItemGroup({
-        name: folder.name,
-        description: folder.description || ''
+    const childItems = folderRequests.get(folderId) || []
+
+    // Find child folders (folders with this folder as parent)
+    const childFolders = folders.filter(f => f.parentId === folderId)
+    childFolders.forEach(childFolder => {
+      childItems.push({
+        name: childFolder.name,
+        description: childFolder.description || '',
+        item: buildItemHierarchy(childFolder.id)
       })
-      folderItems.forEach(item => itemGroup.items.add(item))
-      collection.items.add(itemGroup)
+    })
+
+    return childItems
+  }
+
+  // Start with root items
+  const items = [...rootItems]
+
+  // Add top-level folders (no parent)
+  folders.filter(f => !f.parentId).forEach(folder => {
+    const folderItems = folderRequests.get(folder.id) || []
+    if (folderItems.length > 0 || folders.some(f => f.parentId === folder.id)) {
+      items.push({
+        name: folder.name,
+        description: folder.description || '',
+        item: [
+          ...folderItems,
+          ...buildItemHierarchy(folder.id)
+        ]
+      })
     }
   })
 
-  return collection.toJSON()
+  return {
+    info: {
+      name,
+      description,
+      schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'
+    },
+    item: items
+  }
 }
+
+// Format version constant for Gostman exports
+const GOSTMAN_FORMAT_VERSION = '1.0.0'
 
 /**
  * Exports Gostman data to native JSON format for Git sync
@@ -657,8 +1255,19 @@ export function exportToPostman(requests, folders = [], options = {}) {
  * @returns {Object} Gostman export data
  */
 export function exportToGostman(requests, folders = [], variables = {}) {
+  // Validate inputs
+  if (!Array.isArray(requests)) {
+    requests = []
+  }
+  if (!Array.isArray(folders)) {
+    folders = []
+  }
+  if (typeof variables !== 'object' || variables === null) {
+    variables = {}
+  }
+
   return {
-    version: '1.0.0',
+    version: GOSTMAN_FORMAT_VERSION,
     exportedAt: new Date().toISOString(),
     gostman: {
       requests: requests.map(r => ({
@@ -674,11 +1283,45 @@ export function exportToGostman(requests, folders = [], variables = {}) {
 /**
  * Imports Gostman native JSON format
  * @param {Object} data - Gostman export data
- * @returns {Object} Parsed result with requests, folders, and variables
+ * @returns {Object} Parsed result with success flag, requests, folders, and variables
  */
 export function importGostman(data) {
+  // Validate structure
+  if (!data || typeof data !== 'object') {
+    return {
+      success: false,
+      error: 'Invalid Gostman export format: not an object'
+    }
+  }
+
   if (!data.gostman) {
-    throw new Error('Invalid Gostman export format')
+    return {
+      success: false,
+      error: 'Invalid Gostman export format: missing gostman object'
+    }
+  }
+
+  // Validate arrays
+  if (!Array.isArray(data.gostman.requests)) {
+    return {
+      success: false,
+      error: 'Invalid Gostman export format: requests must be an array'
+    }
+  }
+
+  if (!Array.isArray(data.gostman.folders)) {
+    return {
+      success: false,
+      error: 'Invalid Gostman export format: folders must be an array'
+    }
+  }
+
+  // Validate variables is an object
+  if (data.gostman.variables !== undefined && typeof data.gostman.variables !== 'object') {
+    return {
+      success: false,
+      error: 'Invalid Gostman export format: variables must be an object'
+    }
   }
 
   return {
@@ -724,6 +1367,11 @@ export function toYAML(obj, options = {}) {
  * @returns {string} Markdown documentation
  */
 export function exportToMarkdown(requests, options = {}) {
+  // Validate requests is an array
+  if (!Array.isArray(requests)) {
+    requests = []
+  }
+
   const {
     title = 'API Documentation',
     description = 'Auto-generated documentation from Gostman',
@@ -756,7 +1404,8 @@ export function exportToMarkdown(requests, options = {}) {
   md += '## Table of Contents\n\n'
   grouped.forEach((_, groupId) => {
     if (groupId !== 'root') {
-      const anchor = groupId.toLowerCase().replace(/\s+/g, '-')
+      // Sanitize anchor to remove non-word characters
+      const anchor = groupId.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')
       md += `- [${groupId}](#${anchor})\n`
     }
   })
@@ -765,7 +1414,8 @@ export function exportToMarkdown(requests, options = {}) {
   // Generate documentation for each group
   grouped.forEach((groupRequests, groupId) => {
     if (groupId !== 'root') {
-      const anchor = groupId.toLowerCase().replace(/\s+/g, '-')
+      // Sanitize anchor to remove non-word characters
+      const anchor = groupId.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '')
       md += `<a id="${anchor}"></a>\n`
       md += `## ${groupId}\n\n`
     }
@@ -776,11 +1426,12 @@ export function exportToMarkdown(requests, options = {}) {
       // Method badge color
       const methodColors = {
         GET: '🟢',
-        POST: '🟢',
+        POST: '🔵',
         PUT: '🟠',
         DELETE: '🔴',
         PATCH: '🟡',
         HEAD: '🟣',
+        OPTIONS: '🟣',
         GRAPHQL: '🩷'
       }
 
@@ -798,11 +1449,16 @@ export function exportToMarkdown(requests, options = {}) {
           md += '**Headers:**\n\n'
           md += '| Key | Value |\n|-----|-------|\n'
           Object.entries(headers).forEach(([key, value]) => {
-            md += `| \`${key}\` | \`${String(value).substring(0, 50)}\` |\n`
+            const displayValue = String(value).length > MAX_TRUNCATION_LENGTH
+              ? String(value).substring(0, MAX_TRUNCATION_LENGTH - 3) + '...'
+              : String(value)
+            md += `| \`${key}\` | \`${displayValue}\` |\n`
           })
           md += '\n'
         }
-      } catch { }
+      } catch (err) {
+        console.warn('Failed to parse headers for markdown export:', err.message)
+      }
 
       // Query params
       try {
@@ -811,12 +1467,14 @@ export function exportToMarkdown(requests, options = {}) {
           md += '**Query Parameters:**\n\n'
           md += '| Parameter | Type | Example |\n|-----------|------|---------|\n'
           Object.entries(params).forEach(([key, value]) => {
-            const type = typeof value === 'number' ? 'number' : 'string'
+            const type = inferType(value)
             md += `| \`${key}\` | ${type} | \`${value}\` |\n`
           })
           md += '\n'
         }
-      } catch { }
+      } catch (err) {
+        console.warn('Failed to parse query params for markdown export:', err.message)
+      }
 
       // Body
       if (request.body && request.body.trim()) {
@@ -831,6 +1489,14 @@ export function exportToMarkdown(requests, options = {}) {
   })
 
   return md
+}
+
+// Helper function to infer type (moved here for reuse)
+function inferType(val) {
+  if (Array.isArray(val)) return 'array'
+  if (typeof val === 'boolean') return 'boolean'
+  if (typeof val === 'number') return 'number'
+  return 'string'
 }
 
 /**

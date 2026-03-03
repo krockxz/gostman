@@ -4,10 +4,16 @@
 *.so
 *.dylib
 
+# Compiled Go output at specific paths
+gostman-gui/*.exe
+gostman-gui/gostman.exe
+gostman-gui/gostman-gui.exe
+
 # Wails
 gostman-gui/build/bin/
 gostman-gui/frontend/dist/
 gostman-gui/frontend/dist-web/
+gostman-gui/frontend/package.json.md5
 
 # Node/Frontend
 node_modules/

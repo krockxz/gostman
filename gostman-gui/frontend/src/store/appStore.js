@@ -16,7 +16,7 @@ export const useAppStore = create(
         folders: [],
         variables: '{}',
         requestHistory: [],
-        tabs: [{ id: 'tab-1', request: { ...DEFAULT_REQUEST }, status: '', loading: false, responseTime: null }],
+        tabs: [{ id: 'tab-1', request: { ...DEFAULT_REQUEST }, status: '', loading: false, responseTime: null, responseHeaders: null, responseCookies: null, responseSize: null }],
         activeTabId: 'tab-1',
         nextTabId: 2,
         activeRequest: { ...DEFAULT_REQUEST },
@@ -69,7 +69,7 @@ export const useAppStore = create(
         setActiveTab: (tabId) => set({ activeTabId: tabId }),
         newTab: (folderId = null) => set((state) => {
           const id = `tab-${state.nextTabId}`
-          return { tabs: [...state.tabs, { id, request: { ...DEFAULT_REQUEST, folderId }, status: '', loading: false, responseTime: null }], activeTabId: id, nextTabId: state.nextTabId + 1 }
+          return { tabs: [...state.tabs, { id, request: { ...DEFAULT_REQUEST, folderId }, status: '', loading: false, responseTime: null, responseHeaders: null, responseCookies: null, responseSize: null }], activeTabId: id, nextTabId: state.nextTabId + 1 }
         }),
         closeTab: (tabId) => set((state) => {
           if (state.tabs.length === 1) return state
@@ -88,10 +88,10 @@ export const useAppStore = create(
           tabs: state.tabs.map(t => t.id === state.activeTabId ? { ...t, request: { ...t.request, ...updates } } : t)
         })),
         loadRequestIntoTab: (request) => set((state) => ({
-          tabs: state.tabs.map(t => t.id === state.activeTabId ? { ...t, request: parseRequest(request), status: '', responseTime: null } : t)
+          tabs: state.tabs.map(t => t.id === state.activeTabId ? { ...t, request: parseRequest(request), status: '', responseTime: null, responseHeaders: null, responseCookies: null, responseSize: null } : t)
         })),
         loadHistoryIntoTab: (item) => set((state) => ({
-          tabs: state.tabs.map(t => t.id === state.activeTabId ? { ...t, request: { ...parseRequest(item), response: '' }, status: '', responseTime: null } : t)
+          tabs: state.tabs.map(t => t.id === state.activeTabId ? { ...t, request: { ...parseRequest(item), response: '' }, status: '', responseTime: null, responseHeaders: null, responseCookies: null, responseSize: null } : t)
         })),
 
         // Variables

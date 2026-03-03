@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import {
     Download, FileJson, FileText, FolderOpen,
     Check, Copy, FileCode
@@ -20,43 +20,48 @@ const EXPORT_FORMATS = [
     { id: 'gostman', label: 'Gostman', icon: FolderOpen, description: 'Gostman backup (JSON)' }
 ]
 
+// MIME types for each export format
+const MIME_TYPES = {
+    'openapi-json': 'application/json',
+    'openapi-yaml': 'text/yaml',
+    'postman': 'application/json',
+    'markdown': 'text/markdown',
+    'gostman': 'application/json'
+}
+
 export function ExportTab({ requests, folders, variables }) {
     const [selectedExportFormat, setSelectedExportFormat] = useState('openapi-json')
     const [exportPreview, setExportPreview] = useState('')
     const [copied, setCopied] = useState(false)
 
-    // Update export preview when format changes
-    useEffect(() => {
-        generateExport()
-    }, [selectedExportFormat, requests, folders, variables])
-
-    const generateExport = () => {
+    // Memoize generateExport to avoid recreating on every render
+    const generateExport = useCallback(() => {
         try {
             switch (selectedExportFormat) {
                 case 'openapi-json':
-                    setExportPreview(exportToOpenAPIJSON(requests, {
+                    setExportPreview(exportToOpenAPIJSON(requests || [], {
                         title: 'Gostman API Collection',
                         version: '1.0.0'
                     }))
                     break
                 case 'openapi-yaml':
-                    setExportPreview(exportToOpenAPIYAML(requests, {
+                    setExportPreview(exportToOpenAPIYAML(requests || [], {
                         title: 'Gostman API Collection',
                         version: '1.0.0'
                     }))
                     break
                 case 'postman':
-                    setExportPreview(JSON.stringify(exportToPostman(requests, folders, {
+                    setExportPreview(JSON.stringify(exportToPostman(requests || [], folders || [], {
                         name: 'Gostman Collection'
                     }), null, 2))
                     break
                 case 'markdown':
-                    setExportPreview(exportToMarkdown(requests, {
+                    setExportPreview(exportToMarkdown(requests || [], {
                         title: 'API Documentation'
                     }))
                     break
                 case 'gostman':
-                    setExportPreview(JSON.stringify(exportToGostman(requests, folders, variables), null, 2))
+                    setExportPreview(JSON.stringify(exportToGostman(requests || [], folders || [], variables || {}), null, 2))
                     break
                 default:
                     setExportPreview('')
@@ -64,7 +69,12 @@ export function ExportTab({ requests, folders, variables }) {
         } catch (err) {
             setExportPreview(`Error generating export: ${err.message}`)
         }
-    }
+    }, [selectedExportFormat, requests, folders, variables])
+
+    // Update export preview when format changes or data changes
+    useEffect(() => {
+        generateExport()
+    }, [generateExport])
 
     const handleCopy = async () => {
         try {
@@ -77,7 +87,8 @@ export function ExportTab({ requests, folders, variables }) {
     }
 
     const handleDownload = () => {
-        const blob = new Blob([exportPreview], { type: 'text/plain' })
+        const mimeType = MIME_TYPES[selectedExportFormat] || 'text/plain'
+        const blob = new Blob([exportPreview], { type: mimeType })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
@@ -102,12 +113,12 @@ export function ExportTab({ requests, folders, variables }) {
             <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/20 border border-border/50">
                 <div className="flex items-center gap-2">
                     <FileJson className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{requests.length} requests</span>
+                    <span className="text-sm">{requests?.length || 0} requests</span>
                 </div>
                 <div className="w-px h-4 bg-border/50" />
                 <div className="flex items-center gap-2">
                     <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{folders.length} folders</span>
+                    <span className="text-sm">{folders?.length || 0} folders</span>
                 </div>
             </div>
 

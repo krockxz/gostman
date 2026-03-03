@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "dev:web": "cp index-web.html index.html && vite --config vite.web.config.js",
-    "build:web": "cp index-web.html index.html && vite build --config vite.web.config.js",
+    "dev:web": "copy /Y index-web.html index.html && vite --config vite.web.config.js",
+    "build:web": "copy /Y index-web.html index.html && vite build --config vite.web.config.js",
     "preview": "vite preview",
     "test": "vitest"
   },
@@ -22,6 +22,7 @@
     "graphql-request": "^7.4.0",
     "js-yaml": "^4.1.1",
     "jsonpath-plus": "^10.3.0",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.562.0",
     "parse-curl": "^0.2.6",
     "postman-collection": "^5.2.0",

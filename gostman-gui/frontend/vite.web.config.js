@@ -42,6 +42,12 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    open: true
+    open: true,
+    proxy: {
+      // During local dev, forward /api/proxy to the local Go server.
+      // In production, Vercel handles this route via api/proxy.go.
+      // Run the local server with: go run api/local_server.go
+      '/api/proxy': 'http://localhost:8787'
+    }
   }
 })
