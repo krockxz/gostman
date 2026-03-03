@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -18,9 +19,15 @@ type ProxyRequest struct {
 
 // ProxyResponse defines the structure of the response we send back to the frontend
 type ProxyResponse struct {
-	Status  string            `json:"status"`
-	Headers map[string]string `json:"headers"`
-	Body    string            `json:"body"`
+	Status  string        `json:"status"`
+	Headers []HeaderEntry `json:"headers"`
+	Body    string        `json:"body"`
+}
+
+// HeaderEntry represents a single header key-value pair
+type HeaderEntry struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
 }
 
 // Handler is the Vercel Serverless Function entrypoint
@@ -85,16 +92,29 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Prepare response
-	respHeaders := make(map[string]string)
-	for k, v := range resp.Header {
-		respHeaders[k] = strings.Join(v, ", ")
+	// Collect ALL headers individually (no combining)
+	var respHeaders []HeaderEntry
+	for k, values := range resp.Header {
+		for _, v := range values {
+			respHeaders = append(respHeaders, HeaderEntry{Key: k, Value: v})
+		}
+	}
+
+	// Convert images to base64 data URL
+	contentType := resp.Header.Get("Content-Type")
+	var responseBody string
+	if contentType != "" && strings.HasPrefix(strings.ToLower(contentType), "image/") {
+		mimeType := strings.Split(contentType, ";")[0]
+		base64Data := base64.StdEncoding.EncodeToString(bodyBytes)
+		responseBody = "data:" + mimeType + ";base64," + base64Data
+	} else {
+		responseBody = string(bodyBytes)
 	}
 
 	response := ProxyResponse{
 		Status:  resp.Status,
 		Headers: respHeaders,
-		Body:    string(bodyBytes),
+		Body:    responseBody,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
