@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Plug, Unplug, Send, Trash2, Clock, CheckCircle, XCircle, AlertCircle, Radio, Waves, Zap, Copy } from "lucide-react"
+import { Plug, Unplug, Send, Trash2, Clock, CheckCircle, XCircle, AlertCircle, Radio, Waves, Copy } from "lucide-react"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Textarea } from "./ui/textarea"

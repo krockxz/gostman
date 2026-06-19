@@ -328,7 +328,11 @@ function App() {
           async () => {
             try {
               await ResetData()
-              localStorage.clear()
+              try {
+                localStorage.clear()
+              } catch (e) {
+                console.warn("Could not clear localStorage:", e)
+              }
               window.location.reload()
             } catch (e) {
               showAlert('Error', `Reset failed: ${e.message || String(e)}`, 'OK', 'warning')
@@ -372,26 +376,34 @@ function App() {
               showConfirm(
                 'Reset App',
                 'Clear all data?',
-                async () => {
+              async () => {
+                try {
+                  await ResetData()
                   try {
-                    await ResetData()
                     localStorage.clear()
-                    window.location.reload()
                   } catch (e) {
-                    showAlert('Error', `Reset failed: ${e.message || String(e)}`, 'OK', 'warning')
+                    console.warn("Could not clear localStorage:", e)
                   }
-                },
-                null,
-                'destructive'
-              )
-            }}
-            className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
-            title="Reset to default (Clear data)"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </Button>
-        </div>
-      </header>
+                  window.location.reload()
+                } catch (e) {
+                  showAlert('Error', `Reset failed: ${e.message || String(e)}`, 'OK', 'warning')
+                }
+              },
+              null,
+              'destructive'
+            )
+          },
+          null,
+          'destructive'
+        )
+      }}
+      className="h-8 w-8 text-muted-foreground hover:text-destructive transition-colors"
+      title="Reset to default (Clear data)"
+    >
+      <RotateCcw className="h-4 w-4" />
+    </Button>
+  </div>
+</header>
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">

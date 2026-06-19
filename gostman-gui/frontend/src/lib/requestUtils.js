@@ -55,7 +55,7 @@ export function prepareRequest(activeRequest, variablesMap) {
     try {
         headersObj = JSON.parse(headersStr || "{}")
     } catch (e) {
-        console.error("Failed to parse headers", e)
+        throw new Error("Invalid headers format: " + e.message)
     }
 
     // Query params: overwrite existing URL keys (no duplicates, single

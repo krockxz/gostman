@@ -5,7 +5,7 @@ import { Badge } from "./ui/badge"
 import { Code, Eye, List, Cookie, Maximize2, Minimize2, ChevronDown, ChevronUp, Copy, Check, FileText, Braces } from "lucide-react"
 import { parseError, getErrorConfig } from "../lib/errors"
 import { DataTable } from "./ui/dataTable"
-import { tryParseJSON, formatSize, parseCookieString, normalizeHeaders, getHeaderValue } from "../lib/dataUtils"
+import { tryParseJSON, formatSize, parseCookieString, normalizeHeaders } from "../lib/dataUtils"
 import { getStatusVariant, detectContentType } from "../lib/responseUtils"
 
 // Constants

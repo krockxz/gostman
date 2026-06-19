@@ -1,6 +1,5 @@
-import React, { memo, lazy, Suspense, useState, useEffect } from "react"
+import React, { memo, lazy, Suspense, useState, useEffect, useCallback } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
-import { ScrollArea } from "./ui/scroll-area"
 import { Button } from "./ui/button"
 import { Braces, Hash, Heading1, FolderOpen, FlaskConical, Zap, Radio, AlertCircle, CheckCircle2 } from "lucide-react"
 import { TestScriptsPanel } from "./TestScriptsPanel"
@@ -48,33 +47,9 @@ export const RequestTabs = memo(function RequestTabs({
         setEnvVarValidation(result)
     }, [variables])
 
-    // Sync GraphQL data to body when GraphQL tab is active
-    // This ensures that the Send button sends the correctly formatted GraphQL request
-    useEffect(() => {
-        if (activeTab === 'graphql') {
-            const query = activeRequest.graphqlQuery || ''
-            const variables = activeRequest.graphqlVariables || '{}'
-
-            // Dynamically import formatGraphQLRequest to avoid circular dependency
-            import("./GraphQLPanel").then(module => {
-                const formatted = module.formatGraphQLRequest(query, variables)
-                if (formatted.body) {
-                    onUpdateField('body', formatted.body)
-                }
-                if (formatted.headers) {
-                    // Ensure Content-Type is set for GraphQL
-                    try {
-                        const currentHeaders = JSON.parse((activeRequest?.headers || '{}'))
-                        const mergedHeaders = { ...currentHeaders, ...formatted.headers }
-                        onUpdateField('headers', JSON.stringify(mergedHeaders, null, 2))
-                    } catch (e) {
-                        // If headers are invalid JSON, just set the GraphQL headers
-                        onUpdateField('headers', JSON.stringify(formatted.headers, null, 2))
-                    }
-                }
-            })
-        }
-    }, [activeTab, activeRequest.graphqlQuery, activeRequest.graphqlVariables])
+    // Stable callbacks for ParamsPanel
+    const handleUrlChange = useCallback((newUrl) => onUpdateField('url', newUrl), [onUpdateField])
+    const handleQueryParamsChange = useCallback((newParams) => onUpdateField('queryParams', newParams), [onUpdateField])
 
     return (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-1 flex-col">
@@ -131,8 +106,8 @@ export const RequestTabs = memo(function RequestTabs({
                     <ParamsPanel
                         url={activeRequest?.url || ''}
                         queryParams={activeRequest?.queryParams || '{}'}
-                        onUrlChange={(newUrl) => onUpdateField('url', newUrl)}
-                        onQueryParamsChange={(newParams) => onUpdateField('queryParams', newParams)}
+                        onUrlChange={handleUrlChange}
+                        onQueryParamsChange={handleQueryParamsChange}
                     />
                 </TabsContent>
 

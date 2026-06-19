@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/url"
@@ -95,23 +96,18 @@ func getAppDataPath() string {
 	return filepath.Join(os.Getenv("HOME"), ".local", "share", "Gostman")
 }
 
-func checkFileExists(filepath string) bool {
-	_, err := os.Stat(filepath)
-	return !errors.Is(err, os.ErrNotExist)
-}
-
 // getSavedData loads the entire data structure from disk.
 // It returns an empty SavedData if the file doesn't exist or errors.
 func getSavedData() SavedData {
 	dataMutex.RLock()
 	defer dataMutex.RUnlock()
 
-	if !checkFileExists(jsonfilePath) {
-		return SavedData{}
-	}
 	file, err := os.ReadFile(jsonfilePath)
 	if err != nil {
-		log.Println("Error reading file:", err)
+		if errors.Is(err, fs.ErrNotExist) {
+			return SavedData{}
+		}
+		log.Printf("Error reading data file: %v", err)
 		return SavedData{}
 	}
 	var data SavedData
@@ -128,6 +124,42 @@ func getSavedData() SavedData {
 func saveSavedData(data SavedData) error {
 	dataMutex.Lock()
 	defer dataMutex.Unlock()
+
+	if err := os.MkdirAll(appFolder, os.ModePerm); err != nil {
+		return fmt.Errorf("failed to create directory: %w", err)
+	}
+
+	updatedData, err := json.MarshalIndent(data, "", " ")
+	if err != nil {
+		return fmt.Errorf("failed to encode JSON: %w", err)
+	}
+
+	if err := os.WriteFile(jsonfilePath, updatedData, 0644); err != nil {
+		return fmt.Errorf("failed to write file: %w", err)
+	}
+	return nil
+}
+
+// mutateSavedData acquires a write lock, reads the file, calls fn to mutate
+// the data in-place, then writes the file back. It is safe against concurrent
+// goroutines because the lock is held for the entire read-modify-write cycle.
+func (a *App) mutateSavedData(fn func(data *SavedData)) error {
+	dataMutex.Lock()
+	defer dataMutex.Unlock()
+
+	var data SavedData
+	file, err := os.ReadFile(jsonfilePath)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			return fmt.Errorf("failed to read data file: %w", err)
+		}
+	} else if len(file) > 0 {
+		if err := json.Unmarshal(file, &data); err != nil {
+			return fmt.Errorf("failed to unmarshal data: %w", err)
+		}
+	}
+
+	fn(&data)
 
 	if err := os.MkdirAll(appFolder, os.ModePerm); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
@@ -211,7 +243,10 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 			if !hasContentType {
 				headers["Content-Type"] = "application/json"
 			}
-			updatedHeaders, _ := json.Marshal(headers)
+			updatedHeaders, err := json.Marshal(headers)
+			if err != nil {
+				return ResponseMsg{Body: fmt.Sprintf("Error encoding GraphQL headers: %v", err), Status: "Configuration Error", Headers: nil, Cookies: nil, Size: 0}
+			}
 			headersJSON = string(updatedHeaders)
 		} else {
 			return ResponseMsg{Body: fmt.Sprintf("Error parsing GraphQL Headers JSON: %v", err), Status: "Configuration Error", Headers: nil, Cookies: nil, Size: 0}
@@ -256,10 +291,19 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 		urlStr = parsedURL.String()
 	}
 
+	// 4b. Default scheme to https if missing
+	if !strings.Contains(urlStr, "://") {
+		urlStr = "https://" + urlStr
+	}
+
 	// 5. Build Request
 	method = strings.ToUpper(strings.TrimSpace(method))
 	var req *http.Request
 	var err error
+
+	if len(bodyStr) > 10*1024*1024 {
+		return ResponseMsg{Body: "Request body too large (max 10MB)", Status: "Error", Headers: nil, Cookies: nil, Size: 0}
+	}
 
 	// We only support a subset of methods with body for now, but standard http.NewRequest handles nil body fine for GET
 	reqBody := bytes.NewBuffer([]byte(bodyStr))
@@ -285,7 +329,11 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 	if err != nil {
 		return ResponseMsg{Body: "Network Error: " + err.Error(), Status: "Error", Headers: nil, Cookies: nil, Size: 0}
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Error closing response body: %v", err)
+		}
+	}()
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -343,54 +391,58 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 }
 
 func (a *App) GetRequests() []Request {
-	return getSavedData().Requests
+	data := getSavedData()
+	result := make([]Request, len(data.Requests))
+	copy(result, data.Requests)
+	return result
 }
 
 func (a *App) SaveRequest(r Request) string {
-	data := getSavedData()
-
-	if r.Id == "" {
-		r.Id = uuid.New().String()
-		data.Requests = append(data.Requests, r)
-	} else {
-		found := false
-		for i, savedReq := range data.Requests {
-			if savedReq.Id == r.Id {
-				data.Requests[i] = r
-				found = true
-				break
+	err := a.mutateSavedData(func(data *SavedData) {
+		if r.Id == "" {
+			r.Id = uuid.New().String()
+			data.Requests = append(data.Requests, r)
+		} else {
+			found := false
+			for i, savedReq := range data.Requests {
+				if savedReq.Id == r.Id {
+					data.Requests[i] = r
+					found = true
+					break
+				}
+			}
+			if !found {
+				data.Requests = append(data.Requests, r)
 			}
 		}
-		if !found {
-			data.Requests = append(data.Requests, r)
-		}
-	}
-
-	if err := saveSavedData(data); err != nil {
+	})
+	if err != nil {
 		return "Failed to save request: " + err.Error()
 	}
 	return "Request Saved Successfully"
 }
 
 func (a *App) DeleteRequest(id string) error {
-	data := getSavedData()
-
-	index := -1
-	for i, req := range data.Requests {
-		if req.Id == id {
-			index = i
-			break
+	var notFound bool
+	err := a.mutateSavedData(func(data *SavedData) {
+		index := -1
+		for i, req := range data.Requests {
+			if req.Id == id {
+				index = i
+				break
+			}
 		}
-	}
-
-	if index == -1 {
-		return fmt.Errorf("id not found: %s", id)
-	}
-
-	data.Requests = append(data.Requests[:index], data.Requests[index+1:]...)
-
-	if err := saveSavedData(data); err != nil {
+		if index == -1 {
+			notFound = true
+			return
+		}
+		data.Requests = append(data.Requests[:index], data.Requests[index+1:]...)
+	})
+	if err != nil {
 		return err
+	}
+	if notFound {
+		return fmt.Errorf("id not found: %s", id)
 	}
 	return nil
 }
@@ -416,10 +468,10 @@ func (a *App) SaveVariables(variableString string) string {
 		return "Error: Failed to encode variables"
 	}
 
-	data := getSavedData()
-	data.Variables = string(coercedJSON)
-
-	if err := saveSavedData(data); err != nil {
+	coercedStr := string(coercedJSON)
+	if err := a.mutateSavedData(func(data *SavedData) {
+		data.Variables = coercedStr
+	}); err != nil {
 		return "Failed to save variables: " + err.Error()
 	}
 	return "Environment Variables Saved Successfully"

@@ -25,21 +25,13 @@ func main() {
 		runtime.Quit(app.ctx)
 	})
 
-	EditMenu := appMenu.AddSubmenu("Edit")
-	// Note: No keyboard shortcuts or callbacks - let the browser handle these natively
-	EditMenu.AddText("Undo", nil, nil)
-	EditMenu.AddText("Redo", nil, nil)
-	EditMenu.AddSeparator()
-	EditMenu.AddText("Cut", nil, nil)
-	EditMenu.AddText("Copy", nil, nil)
-	EditMenu.AddText("Paste", nil, nil)
-	EditMenu.AddText("Select All", nil, nil)
-
 	// Create application with options
 	err := wails.Run(&options.App{
-		Title:  "Gostman",
-		Width:  1024,
-		Height: 768,
+		Title:     "Gostman",
+		Width:     1024,
+		Height:    768,
+		MinWidth:  800,
+		MinHeight: 600,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},

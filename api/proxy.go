@@ -4,7 +4,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io"
+	"log"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -44,16 +47,22 @@ type CookieInfo struct {
 	HttpOnly bool   `json:"httpOnly"`
 }
 
+func isPrivateIP(ip net.IP) bool {
+	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast()
+}
+
 // writeProxyError writes a JSON-encoded ProxyResponse describing an error.
 // The HTTP status is always 200 so the frontend's response.json() succeeds
 // and the real error surfaces in the Status/Body fields. CORS headers are
 // expected to already be set on the response writer.
 func writeProxyError(w http.ResponseWriter, status, body string) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(ProxyResponse{
+	if err := json.NewEncoder(w).Encode(ProxyResponse{
 		Status: status,
 		Body:   body,
-	})
+	}); err != nil {
+		log.Printf("Error writing proxy error response: %v", err)
+	}
 }
 
 // Handler is the Vercel Serverless Function entrypoint
@@ -79,9 +88,31 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create the outgoing request
+	// Validate URL scheme (SSRF prevention)
+	parsedURL, err := url.Parse(proxyReq.URL)
+	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		writeProxyError(w, "Error", "Invalid or unsupported URL scheme")
+		return
+	}
+
+	if len(proxyReq.Body) > 10*1024*1024 {
+		writeProxyError(w, "Error", "Request body too large")
+		return
+	}
+
+	// Create the outgoing request with SSRF-safe redirect handling
 	client := &http.Client{
 		Timeout: 30 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return http.ErrUseLastResponse
+			}
+			host := req.URL.Hostname()
+			if ip := net.ParseIP(host); ip != nil && isPrivateIP(ip) {
+				return http.ErrUseLastResponse
+			}
+			return nil
+		},
 	}
 
 	reqBody := strings.NewReader(proxyReq.Body)
@@ -102,10 +133,14 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		writeProxyError(w, "Network Error", "Network Error: "+err.Error())
 		return
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			log.Printf("Error closing response body: %v", err)
+		}
+	}()
 
-	// Read response body
-	bodyBytes, err := io.ReadAll(resp.Body)
+	// Read response body (limit to 50MB)
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 50*1024*1024))
 	if err != nil {
 		writeProxyError(w, "Read Error", "Failed to read response: "+err.Error())
 		return
@@ -157,5 +192,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding proxy response: %v", err)
+		http.Error(w, "Internal error", http.StatusInternalServerError)
+	}
 }

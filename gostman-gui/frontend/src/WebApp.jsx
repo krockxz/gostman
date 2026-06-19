@@ -202,7 +202,23 @@ function WebApp() {
 
     try {
       const varsMap = parseVariables(variables)
-      const { url, method, headers, body } = prepareRequest(activeRequest, varsMap)
+
+      let url, method, headers, body
+      try {
+        const prepared = prepareRequest(activeRequest, varsMap)
+        url = prepared.url
+        method = prepared.method
+        headers = prepared.headers
+        body = prepared.body
+      } catch (e) {
+        setActiveRequest(prev => ({
+          ...prev,
+          response: e.message,
+        }))
+        setWebStatus("Error")
+        setWebLoading(false)
+        return
+      }
 
       const response = await sendProxyRequest({ method, url, headers, body })
       // Proxy returns JSON: {status, headers: [{key, value}], body, cookies, size}
@@ -215,22 +231,13 @@ function WebApp() {
       const responseSize = (proxyResponse.size != null) ? proxyResponse.size : null
       const statusText = proxyResponse.status || 'Error'
 
-      // Detect response type from Content-Type header
-      let responseType = 'text'
-      const ctHeader = responseHeaders.find(h => h.key.toLowerCase() === 'content-type')
-      const contentType = ctHeader?.value || ''
-      if (contentType.includes('image/')) responseType = 'image'
-      else if (contentType.includes('text/html')) responseType = 'html'
-      else if (contentType.includes('application/json')) responseType = 'json'
-
       setWebResponseTime(getResponseTime())
       setActiveRequest(prev => ({
         ...prev,
         response: responseData,
         responseHeaders,
         responseCookies,
-        responseSize,
-        responseType
+        responseSize
       }))
       setWebStatus(statusText)
       addToHistory(activeRequest)
@@ -238,8 +245,7 @@ function WebApp() {
       setWebResponseTime(getResponseTime())
       setActiveRequest(prev => ({
         ...prev,
-        response: "Error: " + e.message,
-        responseType: "text"
+        response: "Error: " + e.message
       }))
       setWebStatus("Error")
       addToHistory(activeRequest)
@@ -484,7 +490,6 @@ function WebApp() {
               responseHeaders={activeRequest.responseHeaders}
               responseCookies={activeRequest.responseCookies}
               responseSize={activeRequest.responseSize}
-              responseType={activeRequest.responseType}
               responseTime={responseTime}
             />
           </div>

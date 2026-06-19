@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Play, ChevronDown, ChevronRight, FileJson, Zap, Check, AlertCircle, Sparkles, Code, Wand2, Copy, CheckCircle2 } from "lucide-react"
+import { ChevronDown, ChevronRight, FileJson, Zap, Check, AlertCircle, Sparkles, Code, Wand2, Copy, CheckCircle2 } from "lucide-react"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Textarea } from "./ui/textarea"
-import { parse, visit, buildSchema, Kind } from 'graphql'
+import { parse, visit, Kind } from 'graphql'
 import { request } from 'graphql-request'
 import { GRAPHQL_EXAMPLES } from "../lib/graphqlConstants"
 
