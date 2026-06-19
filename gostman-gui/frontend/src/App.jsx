@@ -19,7 +19,7 @@ import { generateAllSnippets } from "./lib/codeGenerator"
 import { useAppStore, useActiveTab } from "./store/appStore"
 import { parseJSON } from "./lib/dataUtils"
 import { validateEnvVariables } from "./lib/validation"
-import logo from "./assets/logo.svg"
+import logo from "./assets/logo.jpg"
 
 function App() {
   // Zustand store hooks

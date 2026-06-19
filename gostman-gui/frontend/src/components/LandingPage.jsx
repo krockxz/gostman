@@ -21,7 +21,7 @@ import {
   Link2,
 } from "lucide-react"
 
-import logo from "../assets/logo.svg"
+import logo from "../assets/logo.jpg"
 
 // Animation components
 import {
