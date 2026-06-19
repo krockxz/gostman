@@ -1,6 +1,6 @@
 import { useEffect, useCallback, lazy, Suspense } from 'react'
 import { RotateCcw, Import, Loader2 } from "lucide-react"
-import { SendRequest, GetRequests, SaveRequest, DeleteRequest, GetVariables, SaveVariables } from "../wailsjs/go/main/App"
+import { SendRequest, GetRequests, SaveRequest, DeleteRequest, GetVariables, SaveVariables, ResetData } from "../wailsjs/go/main/App"
 import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
 import { ResponsePanel } from "./components/ResponsePanel"
@@ -83,12 +83,10 @@ function App() {
       const [reqs, vars] = await Promise.all([GetRequests(), GetVariables()])
       setRequests(reqs || [])
       setVariables(vars || "{}")
-      // Folders currently local-only for desktop until backend support
-      setFolders([])
     } catch (e) {
       console.error("Failed to load data:", e)
     }
-  }, [setRequests, setVariables, setFolders])
+  }, [setRequests, setVariables])
 
   useEffect(() => {
     fetchInitialData()
@@ -142,7 +140,23 @@ function App() {
     showConfirm(
       'Delete Folder',
       'Move requests to root?',
-      () => deleteFolder(folderId),
+      async () => {
+        const affected = requests.filter(r => r.folderId === folderId)
+        let hasError = false
+        for (const req of affected) {
+          try {
+            await SaveRequest({ ...req, folderId: "" })
+          } catch (e) {
+            console.error(e)
+            hasError = true
+          }
+        }
+        setRequests(requests.map(r => r.folderId === folderId ? { ...r, folderId: "" } : r))
+        deleteFolder(folderId)
+        if (hasError) {
+          showAlert('Warning', 'Some requests could not be saved to disk, but local state has been updated.', 'OK', 'warning')
+        }
+      },
       null,
       'default'
     )
@@ -209,7 +223,7 @@ function App() {
       addToHistory(activeRequest)
     } catch (e) {
       updateActiveTab({
-        request: { ...activeRequest, response: "Error: " + e },
+        request: { ...activeRequest, response: e.message || String(e) },
         status: "Error",
         responseTime: getResponseTime(),
         loading: false,
@@ -269,8 +283,13 @@ function App() {
         }
         await refreshRequests()
       }
-      if (importData.folders) {
-        setFolders(importData.folders)
+      if (importData.folders && Array.isArray(importData.folders)) {
+        setFolders(prev => {
+          const folderMap = new Map()
+          prev.forEach(f => folderMap.set(f.id, f))
+          importData.folders.forEach(f => folderMap.set(f.id, f))
+          return Array.from(folderMap.values())
+        })
       }
       if (importData.variables) {
         const varsStr = JSON.stringify(importData.variables, null, 2)
@@ -306,9 +325,14 @@ function App() {
         showConfirm(
           'Reset App',
           'Clear all data? This cannot be undone.',
-          () => {
-            localStorage.clear()
-            window.location.reload()
+          async () => {
+            try {
+              await ResetData()
+              localStorage.clear()
+              window.location.reload()
+            } catch (e) {
+              showAlert('Error', `Reset failed: ${e.message || String(e)}`, 'OK', 'warning')
+            }
           },
           null,
           'destructive'
@@ -348,9 +372,14 @@ function App() {
               showConfirm(
                 'Reset App',
                 'Clear all data?',
-                () => {
-                  localStorage.clear()
-                  window.location.reload()
+                async () => {
+                  try {
+                    await ResetData()
+                    localStorage.clear()
+                    window.location.reload()
+                  } catch (e) {
+                    showAlert('Error', `Reset failed: ${e.message || String(e)}`, 'OK', 'warning')
+                  }
                 },
                 null,
                 'destructive'
@@ -367,6 +396,7 @@ function App() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
+          folders={folders}
           requests={requests}
           requestHistory={requestHistory}
           activeRequest={activeRequest}
@@ -415,7 +445,7 @@ function App() {
               onSaveVars={handleSaveVars}
               response={activeRequest.response || ''}
               responseStatus={activeTab?.status || ''}
-              responseHeaders={null}
+              responseHeaders={activeTab?.responseHeaders || null}
               EditorComponent={MonacoEditor}
               defaultTab={activeRequestTab || 'body'}
             />

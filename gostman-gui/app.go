@@ -54,6 +54,7 @@ type Request struct {
 	Body        string `json:"body"`
 	QueryParams string `json:"queryParams"`
 	Response    string `json:"response"`
+	FolderId    string `json:"folderId"`
 }
 
 type ResponseMsg struct {
@@ -143,11 +144,29 @@ func saveSavedData(data SavedData) error {
 	return nil
 }
 
+var placeholderRe = regexp.MustCompile(`{{([^}]+)}}`)
+
+// coerceVariables converts a map of arbitrary JSON values into a map of
+// strings, matching the JS-side parseVariables behavior. nil values are
+// skipped (treated as missing) so their placeholders stay unchanged.
+func coerceVariables(raw map[string]any) map[string]string {
+	out := make(map[string]string, len(raw))
+	for k, v := range raw {
+		if v == nil {
+			continue
+		}
+		out[k] = fmt.Sprintf("%v", v)
+	}
+	return out
+}
+
 func replacePlaceholders(input string, variables map[string]string) string {
-	re := regexp.MustCompile(`{{(.*?)}}`)
-	return re.ReplaceAllStringFunc(input, func(match string) string {
-		key := strings.Trim(match, "{}")
-		key = strings.TrimSpace(key) // Trim whitespace from the key
+	return placeholderRe.ReplaceAllStringFunc(input, func(match string) string {
+		sub := placeholderRe.FindStringSubmatch(match)
+		if len(sub) < 2 {
+			return match
+		}
+		key := strings.TrimSpace(sub[1])
 		if value, exists := variables[key]; exists {
 			return value
 		}
@@ -179,10 +198,17 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 			bodyStr = string(formattedBody)
 		}
 
-		// Ensure Content-Type header is set
+		// Ensure Content-Type header is set (case-insensitive check)
 		var headers map[string]string
 		if err := json.Unmarshal([]byte(headersJSON), &headers); err == nil {
-			if headers["Content-Type"] == "" {
+			hasContentType := false
+			for k := range headers {
+				if strings.EqualFold(k, "Content-Type") {
+					hasContentType = true
+					break
+				}
+			}
+			if !hasContentType {
 				headers["Content-Type"] = "application/json"
 			}
 			updatedHeaders, _ := json.Marshal(headers)
@@ -192,12 +218,13 @@ func (a *App) SendRequest(method, urlStr, headersJSON, bodyStr, paramsJSON strin
 		}
 	}
 
-	// 1. Load and Parse Variables
+	// 1. Load and Parse Variables (coerce non-string values to string)
 	variablesJSON := a.GetVariables()
-	var variables map[string]string
-	if err := json.Unmarshal([]byte(variablesJSON), &variables); err != nil {
+	var rawVars map[string]any
+	if err := json.Unmarshal([]byte(variablesJSON), &rawVars); err != nil {
 		return ResponseMsg{Body: "Error parsing Env Variables", Status: "Configuration Error", Headers: nil, Cookies: nil, Size: 0}
 	}
+	variables := coerceVariables(rawVars)
 
 	// 2. Variable Substitution
 	urlStr = replacePlaceholders(urlStr, variables)
@@ -377,17 +404,32 @@ func (a *App) GetVariables() string {
 }
 
 func (a *App) SaveVariables(variableString string) string {
-	// Validate JSON
-	var variables map[string]string
-	if err := json.Unmarshal([]byte(variableString), &variables); err != nil {
+	// Validate JSON and coerce non-string values to strings (e.g. {"count": 5} -> {"count": "5"})
+	var rawVars map[string]any
+	if err := json.Unmarshal([]byte(variableString), &rawVars); err != nil {
 		return "Error: Invalid JSON structure"
 	}
 
+	coerced := coerceVariables(rawVars)
+	coercedJSON, err := json.Marshal(coerced)
+	if err != nil {
+		return "Error: Failed to encode variables"
+	}
+
 	data := getSavedData()
-	data.Variables = variableString
+	data.Variables = string(coercedJSON)
 
 	if err := saveSavedData(data); err != nil {
 		return "Failed to save variables: " + err.Error()
 	}
 	return "Environment Variables Saved Successfully"
+}
+
+// ResetData clears all saved data (requests + variables) on disk so the app
+// returns to an empty state. Used by the desktop reset action.
+func (a *App) ResetData() error {
+	if err := saveSavedData(SavedData{}); err != nil {
+		return err
+	}
+	return nil
 }

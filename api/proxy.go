@@ -22,12 +22,38 @@ type ProxyResponse struct {
 	Status  string        `json:"status"`
 	Headers []HeaderEntry `json:"headers"`
 	Body    string        `json:"body"`
+	Cookies []CookieInfo  `json:"cookies"`
+	Size    int64         `json:"size"`
 }
 
 // HeaderEntry represents a single header key-value pair
 type HeaderEntry struct {
 	Key   string `json:"key"`
 	Value string `json:"value"`
+}
+
+// CookieInfo represents a single response cookie, matching the desktop
+// ResponseMsg.CookieInfo shape (app.go:72-80)
+type CookieInfo struct {
+	Name     string `json:"name"`
+	Value    string `json:"value"`
+	Domain   string `json:"domain"`
+	Path     string `json:"path"`
+	Expires  string `json:"expires"`
+	Secure   bool   `json:"secure"`
+	HttpOnly bool   `json:"httpOnly"`
+}
+
+// writeProxyError writes a JSON-encoded ProxyResponse describing an error.
+// The HTTP status is always 200 so the frontend's response.json() succeeds
+// and the real error surfaces in the Status/Body fields. CORS headers are
+// expected to already be set on the response writer.
+func writeProxyError(w http.ResponseWriter, status, body string) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(ProxyResponse{
+		Status: status,
+		Body:   body,
+	})
 }
 
 // Handler is the Vercel Serverless Function entrypoint
@@ -43,13 +69,13 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if r.Method != "POST" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		writeProxyError(w, "Method Not Allowed", "Method not allowed")
 		return
 	}
 
 	var proxyReq ProxyRequest
 	if err := json.NewDecoder(r.Body).Decode(&proxyReq); err != nil {
-		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		writeProxyError(w, "Invalid Request Body", "Invalid request body: "+err.Error())
 		return
 	}
 
@@ -61,7 +87,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	reqBody := strings.NewReader(proxyReq.Body)
 	outReq, err := http.NewRequest(proxyReq.Method, proxyReq.URL, reqBody)
 	if err != nil {
-		http.Error(w, "Failed to create request: "+err.Error(), http.StatusInternalServerError)
+		writeProxyError(w, "Failed To Create Request", "Failed to create request: "+err.Error())
 		return
 	}
 
@@ -73,11 +99,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// Perform the request
 	resp, err := client.Do(outReq)
 	if err != nil {
-		// Return error as JSON response so the frontend can display it nicely
-		json.NewEncoder(w).Encode(ProxyResponse{
-			Status: "Error",
-			Body:   "Network Error: " + err.Error(),
-		})
+		writeProxyError(w, "Network Error", "Network Error: "+err.Error())
 		return
 	}
 	defer resp.Body.Close()
@@ -85,10 +107,7 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	// Read response body
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		json.NewEncoder(w).Encode(ProxyResponse{
-			Status: "Error",
-			Body:   "Failed to read response: " + err.Error(),
-		})
+		writeProxyError(w, "Read Error", "Failed to read response: "+err.Error())
 		return
 	}
 
@@ -98,6 +117,24 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		for _, v := range values {
 			respHeaders = append(respHeaders, HeaderEntry{Key: k, Value: v})
 		}
+	}
+
+	// Collect cookies from response — matches app.go:289-304
+	var respCookies []CookieInfo
+	for _, cookie := range resp.Cookies() {
+		expiresStr := ""
+		if !cookie.Expires.IsZero() {
+			expiresStr = cookie.Expires.UTC().Format(time.RFC1123)
+		}
+		respCookies = append(respCookies, CookieInfo{
+			Name:     cookie.Name,
+			Value:    cookie.Value,
+			Domain:   cookie.Domain,
+			Path:     cookie.Path,
+			Expires:  expiresStr,
+			Secure:   cookie.Secure,
+			HttpOnly: cookie.HttpOnly,
+		})
 	}
 
 	// Convert images to base64 data URL
@@ -115,6 +152,8 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 		Status:  resp.Status,
 		Headers: respHeaders,
 		Body:    responseBody,
+		Cookies: respCookies,
+		Size:    int64(len(bodyBytes)),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

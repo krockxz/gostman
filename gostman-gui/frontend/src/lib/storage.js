@@ -1,5 +1,7 @@
 const STORAGE_PREFIX = 'gostman_'
 
+const ZUSTAND_STORAGE_KEY = 'gostman-storage'
+
 export const KEYS = {
     REQUESTS: `${STORAGE_PREFIX}requests`,
     FOLDERS: `${STORAGE_PREFIX}folders`,
@@ -28,5 +30,6 @@ export function saveState(key, value) {
 
 export function resetState() {
     Object.values(KEYS).forEach(key => localStorage.removeItem(key))
+    localStorage.removeItem(ZUSTAND_STORAGE_KEY)
     window.location.reload()
 }

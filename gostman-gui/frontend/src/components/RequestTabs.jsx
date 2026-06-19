@@ -203,8 +203,8 @@ export function RequestTabs({
                 <TabsContent value="test" className="h-full p-0" noMargin>
                     <TestScriptsPanel
                         response={activeRequest.response}
-                        responseStatus={null}
-                        responseHeaders={activeRequest.responseHeaders}
+                        responseStatus={responseStatus}
+                        responseHeaders={responseHeaders}
                         variables={variables}
                         onVariablesChange={onUpdateVariables}
                         onSaveVariables={onSaveVars}

@@ -28,10 +28,22 @@ export function substitute(text, variables) {
  * @returns {Object} - Parsed variables map
  */
 export function parseVariables(jsonString) {
+    let parsed
     try {
-        return JSON.parse(jsonString || '{}')
+        parsed = JSON.parse(jsonString || '{}')
     } catch (e) {
         console.error('Failed to parse variables:', e)
         return {}
     }
+    const result = {}
+    for (const key of Object.keys(parsed)) {
+        const value = parsed[key]
+        // null/undefined values are treated as missing so the placeholder
+        // is left unchanged (matches Go's nil-skip behavior).
+        if (value == null) {
+            continue
+        }
+        result[key] = typeof value === 'string' ? value : String(value)
+    }
+    return result
 }

@@ -16,7 +16,7 @@ const CodeSnippetDialog = lazy(() => import("./components/CodeSnippetDialog").th
 const ImportExportDialog = lazy(() => import("./components/ImportExportDialog").then(module => ({ default: module.ImportExportDialog })))
 import { generateAllSnippets } from "./lib/codeGenerator"
 import { parseVariables } from "./lib/variables"
-import { prepareRequest, processResponse } from "./lib/requestUtils"
+import { prepareRequest } from "./lib/requestUtils"
 import { sendProxyRequest } from "./lib/api"
 import { DEFAULT_REQUEST, mockRequests, mockFolders } from "./lib/mockData"
 import { loadState, saveState, resetState, KEYS } from "./lib/storage"
@@ -98,13 +98,20 @@ function WebApp() {
 
   // Handlers
   const handleSelectRequest = (req) => {
-    setActiveRequest(req)
+    setActiveRequest({
+      ...req,
+      response: '',
+      responseHeaders: null,
+      responseCookies: null,
+      responseSize: null,
+      responseType: 'text'
+    })
     setWebStatus("")
     setWebResponseTime(null)
   }
 
   const handleNewRequest = (folderId = null) => {
-    const newReq = { ...DEFAULT_REQUEST, folderId, id: Date.now().toString() }
+    const newReq = { ...DEFAULT_REQUEST, folderId }
     setActiveRequest(newReq)
     setWebStatus("")
     setWebResponseTime(null)
@@ -146,7 +153,7 @@ function WebApp() {
   const handleSave = async () => {
     const newRequest = {
       ...activeRequest,
-      id: activeRequest.id || Date.now().toString()
+      id: activeRequest.id || crypto.randomUUID()
     }
 
     if (activeRequest.id) {
@@ -197,15 +204,15 @@ function WebApp() {
       const varsMap = parseVariables(variables)
       const { url, method, headers, body } = prepareRequest(activeRequest, varsMap)
 
-      addToHistory({ ...activeRequest, url })
-
       const response = await sendProxyRequest({ method, url, headers, body })
-      // Proxy returns JSON: {status, headers: [{key, value}], body}
+      // Proxy returns JSON: {status, headers: [{key, value}], body, cookies, size}
       const proxyResponse = await response.json()
 
       // Extract data from proxy response
       const responseData = proxyResponse.body || ''
       const responseHeaders = proxyResponse.headers || []
+      const responseCookies = proxyResponse.cookies || null
+      const responseSize = (proxyResponse.size != null) ? proxyResponse.size : null
       const statusText = proxyResponse.status || 'Error'
 
       // Detect response type from Content-Type header
@@ -221,9 +228,12 @@ function WebApp() {
         ...prev,
         response: responseData,
         responseHeaders,
+        responseCookies,
+        responseSize,
         responseType
       }))
       setWebStatus(statusText)
+      addToHistory(activeRequest)
     } catch (e) {
       setWebResponseTime(getResponseTime())
       setActiveRequest(prev => ({
@@ -232,9 +242,20 @@ function WebApp() {
         responseType: "text"
       }))
       setWebStatus("Error")
+      addToHistory(activeRequest)
     } finally {
       setWebLoading(false)
     }
+  }
+
+  const handleClearHistory = () => {
+    showConfirm(
+      'Clear History',
+      'Delete all history?',
+      () => clearHistory(),
+      null,
+      'default'
+    )
   }
 
   const handleGenerateCode = () => {
@@ -264,10 +285,22 @@ function WebApp() {
     if (!importData) return
 
     if (importData.requests && Array.isArray(importData.requests)) {
-      setRequests(importData.requests)
+      setRequests(prev => {
+        const byId = new Map(prev.map(r => [r.id, r]))
+        for (const req of importData.requests) {
+          byId.set(req.id, req)
+        }
+        return Array.from(byId.values())
+      })
     }
     if (importData.folders && Array.isArray(importData.folders)) {
-      setFolders(importData.folders)
+      setFolders(prev => {
+        const byId = new Map(prev.map(f => [f.id, f]))
+        for (const folder of importData.folders) {
+          byId.set(folder.id, folder)
+        }
+        return Array.from(byId.values())
+      })
     }
     if (importData.variables && typeof importData.variables === 'object') {
       setVariables(JSON.stringify(importData.variables, null, 2))
@@ -303,7 +336,7 @@ function WebApp() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [openCommandPalette])
+  }, [handleNewRequest, openCommandPalette])
 
   // Command palette handler
   const handleCommand = (action) => {
@@ -407,7 +440,7 @@ function WebApp() {
           onSelectRequest={handleSelectRequest}
           onSelectHistoryItem={handleSelectHistoryItem}
           onDeleteHistoryItem={deleteHistoryItem}
-          onClearHistory={clearHistory}
+          onClearHistory={handleClearHistory}
           onNewRequest={() => handleNewRequest(null)}
           onDeleteRequest={handleDelete}
           onCreateFolder={handleCreateFolder}
@@ -449,6 +482,8 @@ function WebApp() {
               response={activeRequest.response}
               status={status}
               responseHeaders={activeRequest.responseHeaders}
+              responseCookies={activeRequest.responseCookies}
+              responseSize={activeRequest.responseSize}
               responseType={activeRequest.responseType}
               responseTime={responseTime}
             />

@@ -8,6 +8,8 @@ export function GetRequests():Promise<Array<main.Request>>;
 
 export function GetVariables():Promise<string>;
 
+export function ResetData():Promise<void>;
+
 export function SaveRequest(arg1:main.Request):Promise<string>;
 
 export function SaveVariables(arg1:string):Promise<string>;

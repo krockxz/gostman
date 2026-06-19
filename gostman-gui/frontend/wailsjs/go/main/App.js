@@ -14,6 +14,10 @@ export function GetVariables() {
   return window['go']['main']['App']['GetVariables']();
 }
 
+export function ResetData() {
+  return window['go']['main']['App']['ResetData']();
+}
+
 export function SaveRequest(arg1) {
   return window['go']['main']['App']['SaveRequest'](arg1);
 }
