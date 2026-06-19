@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
+import React, { memo, useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import { JsonView } from 'react-json-view-lite'
 import 'react-json-view-lite/dist/index.css'
 import { Badge } from "./ui/badge"
@@ -170,7 +170,7 @@ function ResponseContent({ response, bodyMode, detectedType, jsonData, isValidJS
   return null
 }
 
-export function ResponsePanel({ response, status, responseTime, responseHeaders, responseCookies, responseSize }) {
+export const ResponsePanel = memo(function ResponsePanel({ response, status, responseTime, responseHeaders, responseCookies, responseSize }) {
   // Error detection
   const isError = status === 'Error' || (response && (response.startsWith('Error:') || response.startsWith('Network Error')))
   const errorObj = isError ? parseError(response) : null
@@ -392,4 +392,4 @@ export function ResponsePanel({ response, status, responseTime, responseHeaders,
       {isFullscreen && <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40" onClick={toggleFullscreen} />}
     </>
   )
-}
+})

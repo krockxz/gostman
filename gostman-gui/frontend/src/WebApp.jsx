@@ -1,4 +1,4 @@
-import { useEffect, lazy, Suspense } from "react"
+import { useEffect, useCallback, lazy, Suspense } from "react"
 import { LandingPage } from "./components/LandingPage"
 import { Sidebar } from "./components/Sidebar"
 import { RequestBar } from "./components/RequestBar"
@@ -7,7 +7,7 @@ import { AlertDialog } from "./components/ui/AlertDialog"
 import { ConfirmDialog } from "./components/ui/ConfirmDialog"
 import { PromptDialog } from "./components/ui/PromptDialog"
 import { CommandPalette } from "./components/ui/CommandPalette"
-import { MonacoEditor } from "./components/MonacoEditor"
+const MonacoEditor = lazy(() => import("./components/MonacoEditor").then(module => ({ default: module.MonacoEditor })))
 import { Button } from "./components/ui/button"
 import { ArrowLeft, RotateCcw, Import, Loader2 } from "lucide-react"
 import { RequestTabs } from "./components/RequestTabs"
@@ -23,7 +23,7 @@ import { loadState, saveState, resetState, KEYS } from "./lib/storage"
 import { useAppStore } from "./store/appStore"
 import { parseJSON } from "./lib/dataUtils"
 import { validateEnvVariables } from "./lib/validation"
-import logo from "./assets/logo.jpg"
+import logo from "./assets/logo.svg"
 
 function WebApp() {
   // Zustand store hooks
@@ -97,7 +97,7 @@ function WebApp() {
   }, [requests, folders, requestHistory, variables])
 
   // Handlers
-  const handleSelectRequest = (req) => {
+  const handleSelectRequest = useCallback((req) => {
     setActiveRequest({
       ...req,
       response: '',
@@ -108,16 +108,16 @@ function WebApp() {
     })
     setWebStatus("")
     setWebResponseTime(null)
-  }
+  }, [])
 
-  const handleNewRequest = (folderId = null) => {
+  const handleNewRequest = useCallback((folderId = null) => {
     const newReq = { ...DEFAULT_REQUEST, folderId }
     setActiveRequest(newReq)
     setWebStatus("")
     setWebResponseTime(null)
-  }
+  }, [])
 
-  const handleCreateFolder = () => {
+  const handleCreateFolder = useCallback(() => {
     showPrompt(
       'New Folder',
       'Folder name:',
@@ -129,9 +129,9 @@ function WebApp() {
         }
       }
     )
-  }
+  }, [])
 
-  const handleDeleteFolder = (folderId) => {
+  const handleDeleteFolder = useCallback((folderId) => {
     showConfirm(
       'Delete Folder',
       'Move requests to root?',
@@ -144,13 +144,13 @@ function WebApp() {
       null,
       'default'
     )
-  }
+  }, [])
 
-  const handleToggleFolder = (folderId) => {
+  const handleToggleFolder = useCallback((folderId) => {
     toggleFolder(folderId)
-  }
+  }, [])
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     const newRequest = {
       ...activeRequest,
       id: activeRequest.id || crypto.randomUUID()
@@ -164,9 +164,9 @@ function WebApp() {
 
     setActiveRequest(newRequest)
     showAlert('Success', 'Request saved!', 'OK', 'success')
-  }
+  }, [activeRequest])
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     if (!id) return
     showConfirm(
       'Delete Request',
@@ -180,9 +180,9 @@ function WebApp() {
       null,
       'destructive'
     )
-  }
+  }, [activeRequest, handleNewRequest])
 
-  const handleSelectHistoryItem = (item) => {
+  const handleSelectHistoryItem = useCallback((item) => {
     setActiveRequest({
       ...item,
       id: "",
@@ -190,9 +190,9 @@ function WebApp() {
     })
     setWebStatus(item.response ? "Loaded from history" : "")
     setWebResponseTime(null)
-  }
+  }, [])
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     setWebLoading(true)
     setWebStatus("Sending...")
     setWebResponseTime(null)
@@ -246,9 +246,9 @@ function WebApp() {
     } finally {
       setWebLoading(false)
     }
-  }
+  }, [activeRequest, variables])
 
-  const handleClearHistory = () => {
+  const handleClearHistory = useCallback(() => {
     showConfirm(
       'Clear History',
       'Delete all history?',
@@ -256,9 +256,9 @@ function WebApp() {
       null,
       'default'
     )
-  }
+  }, [])
 
-  const handleGenerateCode = () => {
+  const handleGenerateCode = useCallback(() => {
     const generated = generateAllSnippets(
       activeRequest.method,
       activeRequest.url,
@@ -267,9 +267,9 @@ function WebApp() {
       activeRequest.queryParams
     )
     openCodeDialog(generated)
-  }
+  }, [activeRequest])
 
-  const handleSaveVars = async () => {
+  const handleSaveVars = useCallback(async () => {
     // Validate before saving
     const validation = validateEnvVariables(variables)
     if (!validation.valid) {
@@ -279,9 +279,9 @@ function WebApp() {
 
     // Web version persists to localStorage via useEffect (line 70-75)
     showAlert('Success', 'Variables saved!', 'OK', 'success')
-  }
+  }, [variables])
 
-  const handleImport = (importData) => {
+  const handleImport = useCallback((importData) => {
     if (!importData) return
 
     if (importData.requests && Array.isArray(importData.requests)) {
@@ -305,19 +305,19 @@ function WebApp() {
     if (importData.variables && typeof importData.variables === 'object') {
       setVariables(JSON.stringify(importData.variables, null, 2))
     }
-  }
+  }, [])
 
-  const handleGetStarted = () => {
+  const handleGetStarted = useCallback(() => {
     setShowLanding(false)
-  }
+  }, [])
 
-  const handleBackToLanding = () => {
+  const handleBackToLanding = useCallback(() => {
     setShowLanding(true)
-  }
+  }, [])
 
-  const updateField = (field, value) => {
+  const updateField = useCallback((field, value) => {
     setActiveRequest(prev => ({ ...prev, [field]: value }))
-  }
+  }, [])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -339,7 +339,7 @@ function WebApp() {
   }, [handleNewRequest, openCommandPalette])
 
   // Command palette handler
-  const handleCommand = (action) => {
+  const handleCommand = useCallback((action) => {
     switch (action) {
       case 'newRequest':
         handleNewRequest(null)
@@ -369,7 +369,7 @@ function WebApp() {
         )
         break
     }
-  }
+  }, [handleNewRequest, handleSave, handleCreateFolder])
 
   // Show landing page for web version
   if (showLanding) {

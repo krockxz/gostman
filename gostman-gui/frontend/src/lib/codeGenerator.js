@@ -1,20 +1,17 @@
-/**
- * Generate code snippets for HTTP requests in various languages
- * Uses curlconverter library for multi-language code generation
- * Uses qs for query string handling
- */
-
-import * as curlconverter from 'curlconverter'
-import qs from 'qs'
 import { parseJSON } from './dataUtils'
 
-/**
- * Build URL with query parameters using qs
- */
 function buildUrl(url, params) {
   if (Object.keys(params).length === 0) return url
-  const queryString = qs.stringify(params, { arrayFormat: 'brackets' })
-  return `${url}${url.includes('?') ? '&' : '?'}${queryString}`
+  const searchParams = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach(v => searchParams.append(key, v))
+    } else {
+      searchParams.set(key, value)
+    }
+  })
+  const qs = searchParams.toString()
+  return `${url}${url.includes('?') ? '&' : '?'}${qs}`
 }
 
 /**
@@ -49,17 +46,8 @@ export function generateCurl(method, url, headers, body, queryParams) {
   return buildCurlCommand(method, url, headers, body, queryParams)
 }
 
-/**
- * Generate JavaScript fetch code using curlconverter
- */
 export function generateJavaScript(method, url, headers, body, queryParams) {
-  const curl = buildCurlCommand(method, url, headers, body, queryParams)
-  try {
-    return curlconverter.toJavaScript(curl)
-  } catch {
-    // Fallback to manual generation if curlconverter fails
-    return generateJavaScriptFallback(method, url, headers, body, queryParams)
-  }
+  return generateJavaScriptFallback(method, url, headers, body, queryParams)
 }
 
 /**
@@ -106,16 +94,8 @@ function formatHeaders(headersObj) {
     .join(',\n')
 }
 
-/**
- * Generate Python requests code using curlconverter
- */
 export function generatePython(method, url, headers, body, queryParams) {
-  const curl = buildCurlCommand(method, url, headers, body, queryParams)
-  try {
-    return curlconverter.toPython(curl)
-  } catch {
-    return generatePythonFallback(method, url, headers, body, queryParams)
-  }
+  return generatePythonFallback(method, url, headers, body, queryParams)
 }
 
 /**
@@ -166,16 +146,8 @@ function generatePythonFallback(method, url, headers, body, queryParams) {
   return code
 }
 
-/**
- * Generate Go http.NewRequest code using curlconverter
- */
 export function generateGo(method, url, headers, body, queryParams) {
-  const curl = buildCurlCommand(method, url, headers, body, queryParams)
-  try {
-    return curlconverter.toGo(curl)
-  } catch {
-    return generateGoFallback(method, url, headers, body, queryParams)
-  }
+  return generateGoFallback(method, url, headers, body, queryParams)
 }
 
 /**
@@ -230,34 +202,18 @@ function generateGoFallback(method, url, headers, body, queryParams) {
   return code
 }
 
-/**
- * Generate PHP code using curlconverter
- */
 export function generatePhp(method, url, headers, body, queryParams) {
   const curl = buildCurlCommand(method, url, headers, body, queryParams)
-  try {
-    return curlconverter.toPhp(curl)
-  } catch {
-    // Return a simple fallback
-    return `// PHP code generation not available\n// Curl command:\n${curl}`
-  }
+  return `// PHP code generation not available\n// Curl command:\n${curl}`
 }
 
-/**
- * Generate Java code using curlconverter
- */
 export function generateJava(method, url, headers, body, queryParams) {
   const curl = buildCurlCommand(method, url, headers, body, queryParams)
-  try {
-    return curlconverter.toJava(curl)
-  } catch {
-    return `// Java code generation not available\n// Curl command:\n${curl}`
-  }
+  return `// Java code generation not available\n// Curl command:\n${curl}`
 }
 
 /**
  * Get all code snippets
- * Now supports 8+ languages via curlconverter
  */
 export function generateAllSnippets(method, url, headers, body, queryParams) {
   return {

@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useState, useEffect } from "react"
+import React, { memo, lazy, Suspense, useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs"
 import { ScrollArea } from "./ui/scroll-area"
 import { Button } from "./ui/button"
@@ -11,7 +11,7 @@ import { isWebSocketURL } from "./WebSocketPanel"
 const GraphQLPanel = lazy(() => import("./GraphQLPanel").then(module => ({ default: module.GraphQLPanel })))
 const WebSocketPanel = lazy(() => import("./WebSocketPanel").then(module => ({ default: module.WebSocketPanel })))
 
-export function RequestTabs({
+export const RequestTabs = memo(function RequestTabs({
     activeRequest,
     onUpdateField,
     variables,
@@ -93,15 +93,16 @@ export function RequestTabs({
             <div className="flex-1 overflow-hidden">
                 <TabsContent value="body" className="h-full p-0" noMargin>
                     <div className="h-full">
-                        {/* Wrapper div might be needed depending on EditorComponent's height behavior */}
-                        <EditorComponent
-                            value={activeRequest.body}
-                            onChange={(e) => onUpdateField('body', e.target.value)}
-                            language="json"
-                            placeholder='{\n  "key": "value"\n}'
-                            className="min-h-[300px] font-mono text-sm" // Class for Textarea
-                            height="100%" // Prop for Monaco
-                        />
+                        <Suspense fallback={<div className="h-64 flex items-center justify-center text-muted-foreground text-sm">Loading editor...</div>}>
+                            <EditorComponent
+                                value={activeRequest.body}
+                                onChange={(e) => onUpdateField('body', e.target.value)}
+                                language="json"
+                                placeholder='{\n  "key": "value"\n}'
+                                className="min-h-[300px] font-mono text-sm" // Class for Textarea
+                                height="100%" // Prop for Monaco
+                            />
+                        </Suspense>
                     </div>
                 </TabsContent>
 
@@ -137,28 +138,32 @@ export function RequestTabs({
 
                 <TabsContent value="headers" className="h-full p-0" noMargin>
                     <div className="h-full">
-                        <EditorComponent
-                            value={activeRequest.headers}
-                            onChange={(e) => onUpdateField('headers', e.target.value)}
-                            language="json"
-                            placeholder='{\n  "Content-Type": "application/json",\n  "Authorization": "Bearer token"\n}'
-                            className="min-h-[300px] font-mono text-sm"
-                            height="100%"
-                        />
+                        <Suspense fallback={<div className="h-64 flex items-center justify-center text-muted-foreground text-sm">Loading editor...</div>}>
+                            <EditorComponent
+                                value={activeRequest.headers}
+                                onChange={(e) => onUpdateField('headers', e.target.value)}
+                                language="json"
+                                placeholder='{\n  "Content-Type": "application/json",\n  "Authorization": "Bearer token"\n}'
+                                className="min-h-[300px] font-mono text-sm"
+                                height="100%"
+                            />
+                        </Suspense>
                     </div>
                 </TabsContent>
 
                 <TabsContent value="vars" className="h-full p-0" noMargin>
                     <div className="flex h-full flex-col">
                         <div className="flex-1 overflow-hidden relative">
-                            <EditorComponent
-                                value={variables}
-                                onChange={(e) => onUpdateVariables(e.target.value)}
-                                language="json"
-                                placeholder='{\n  "base_url": "https://api.example.com"\n}'
-                                className="min-h-[200px] font-mono text-sm h-full resize-none p-4 bg-transparent border-0 focus-visible:ring-0"
-                                height="100%"
-                            />
+                            <Suspense fallback={<div className="h-64 flex items-center justify-center text-muted-foreground text-sm">Loading editor...</div>}>
+                                <EditorComponent
+                                    value={variables}
+                                    onChange={(e) => onUpdateVariables(e.target.value)}
+                                    language="json"
+                                    placeholder='{\n  "base_url": "https://api.example.com"\n}'
+                                    className="min-h-[200px] font-mono text-sm h-full resize-none p-4 bg-transparent border-0 focus-visible:ring-0"
+                                    height="100%"
+                                />
+                            </Suspense>
                         </div>
 
                         {/* Validation status bar */}
@@ -213,4 +218,4 @@ export function RequestTabs({
             </div>
         </Tabs>
     )
-}
+})

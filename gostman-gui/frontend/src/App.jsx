@@ -11,7 +11,7 @@ import { CommandPalette } from "./components/ui/CommandPalette"
 // Lazy load heavy dialogs
 const CodeSnippetDialog = lazy(() => import("./components/CodeSnippetDialog").then(module => ({ default: module.CodeSnippetDialog })))
 const ImportExportDialog = lazy(() => import("./components/ImportExportDialog").then(module => ({ default: module.ImportExportDialog })))
-import { MonacoEditor } from "./components/MonacoEditor"
+const MonacoEditor = lazy(() => import("./components/MonacoEditor").then(module => ({ default: module.MonacoEditor })))
 import { TabBar } from "./components/TabBar"
 import { Button } from "./components/ui/button"
 import { RequestTabs } from "./components/RequestTabs"
@@ -19,7 +19,7 @@ import { generateAllSnippets } from "./lib/codeGenerator"
 import { useAppStore, useActiveTab } from "./store/appStore"
 import { parseJSON } from "./lib/dataUtils"
 import { validateEnvVariables } from "./lib/validation"
-import logo from "./assets/logo.jpg"
+import logo from "./assets/logo.svg"
 
 function App() {
   // Zustand store hooks
@@ -92,16 +92,16 @@ function App() {
     fetchInitialData()
   }, [fetchInitialData])
 
-  const refreshRequests = async () => {
+  const refreshRequests = useCallback(async () => {
     const reqs = await GetRequests()
     setRequests(reqs || [])
-  }
+  }, [])
 
   // -- Tab Management --
 
-  const updateField = (field, value) => {
+  const updateField = useCallback((field, value) => {
     updateActiveRequest({ [field]: value })
-  }
+  }, [])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -122,7 +122,7 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [newTab, openCommandPalette])
 
-  const handleCreateFolder = () => {
+  const handleCreateFolder = useCallback(() => {
     showPrompt(
       'New Folder',
       'Folder name:',
@@ -134,9 +134,9 @@ function App() {
         }
       }
     )
-  }
+  }, [])
 
-  const handleDeleteFolder = (folderId) => {
+  const handleDeleteFolder = useCallback((folderId) => {
     showConfirm(
       'Delete Folder',
       'Move requests to root?',
@@ -160,11 +160,11 @@ function App() {
       null,
       'default'
     )
-  }
+  }, [requests])
 
 
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     try {
       const msg = await SaveRequest(activeRequest)
       showAlert('Success', msg, 'OK', 'success')
@@ -173,9 +173,9 @@ function App() {
       console.error(e)
       showAlert('Error', `Failed to save: ${e.message}`, 'OK', 'warning')
     }
-  }
+  }, [activeRequest, refreshRequests])
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     if (!id) return
     showConfirm(
       'Delete Request',
@@ -193,9 +193,9 @@ function App() {
       null,
       'destructive'
     )
-  }
+  }, [refreshRequests])
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     updateActiveTab({ loading: true, status: 'Sending...', responseTime: null })
     const startTime = performance.now()
 
@@ -234,9 +234,9 @@ function App() {
 
       addToHistory(activeRequest)
     }
-  }
+  }, [activeRequest])
 
-  const handleClearHistory = () => {
+  const handleClearHistory = useCallback(() => {
     showConfirm(
       'Clear History',
       'Delete all history?',
@@ -244,9 +244,9 @@ function App() {
       null,
       'default'
     )
-  }
+  }, [])
 
-  const handleSaveVars = async () => {
+  const handleSaveVars = useCallback(async () => {
     // Validate before saving
     const validation = validateEnvVariables(variables)
     if (!validation.valid) {
@@ -261,9 +261,9 @@ function App() {
       console.error(e)
       showAlert('Error', `Failed to save: ${e.message}`, 'OK', 'warning')
     }
-  }
+  }, [variables])
 
-  const handleGenerateCode = () => {
+  const handleGenerateCode = useCallback(() => {
     const snippets = generateAllSnippets(
       activeRequest.method,
       activeRequest.url,
@@ -272,9 +272,9 @@ function App() {
       activeRequest.queryParams
     )
     openCodeDialog(snippets)
-  }
+  }, [activeRequest])
 
-  const handleImport = async (importData) => {
+  const handleImport = useCallback(async (importData) => {
     try {
       if (importData.requests) {
         // Import each request
@@ -301,10 +301,10 @@ function App() {
       console.error("Import failed:", e)
       showAlert('Import Failed', e.message, 'OK', 'warning')
     }
-  }
+  }, [refreshRequests])
 
   // Command palette handler
-  const handleCommand = (action) => {
+  const handleCommand = useCallback((action) => {
     switch (action) {
       case 'newRequest':
         newTab()
@@ -339,7 +339,7 @@ function App() {
         )
         break
     }
-  }
+  }, [handleSave, handleCreateFolder])
 
 
 

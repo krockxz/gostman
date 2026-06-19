@@ -57,7 +57,7 @@ const EmptyState = memo(({ icon: Icon, title, description, variant = "default" }
   )
 })
 
-export function Sidebar({
+export const Sidebar = memo(function Sidebar({
   requests = [],
   folders = [],
   requestHistory = [],
@@ -320,7 +320,7 @@ export function Sidebar({
       </Tabs>
     </div>
   )
-}
+})
 
 const RequestItem = memo(function RequestItem({ req, activeRequest, onSelectRequest, onDeleteRequest }) {
   return (

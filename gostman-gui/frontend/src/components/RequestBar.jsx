@@ -1,4 +1,4 @@
-import React from "react"
+import React, { memo } from "react"
 import { Send, Save, Globe, Code, Radio } from "lucide-react"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
@@ -10,7 +10,7 @@ import { isWebSocketURL } from "./WebSocketPanel"
 
 import { HTTP_METHODS, METHOD_COLORS } from "../lib/constants"
 
-export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameChange, onHeadersChange, onBodyChange, onQueryParamsChange, onSend, onSave, onGenerateCode, loading }) {
+export const RequestBar = memo(function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameChange, onHeadersChange, onBodyChange, onQueryParamsChange, onSend, onSave, onGenerateCode, loading }) {
   // Check if URL is a WebSocket URL
   const isWebSocket = activeRequest?.url && isWebSocketURL(activeRequest.url)
 
@@ -181,4 +181,4 @@ export function RequestBar({ activeRequest, onMethodChange, onUrlChange, onNameC
       </div>
     </div>
   )
-}
+})
