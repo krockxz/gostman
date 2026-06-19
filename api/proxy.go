@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -49,6 +51,22 @@ type CookieInfo struct {
 
 func isPrivateIP(ip net.IP) bool {
 	return ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast()
+}
+
+func isPrivateHost(ctx context.Context, host string) bool {
+	if ip := net.ParseIP(host); ip != nil {
+		return isPrivateIP(ip)
+	}
+	ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+	if err != nil {
+		return false
+	}
+	for _, ip := range ips {
+		if isPrivateIP(ip.IP) {
+			return true
+		}
+	}
+	return false
 }
 
 // writeProxyError writes a JSON-encoded ProxyResponse describing an error.
@@ -101,14 +119,32 @@ func Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the outgoing request with SSRF-safe redirect handling
+	transport := &http.Transport{
+		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+			host, _, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, err
+			}
+			ips, err := net.DefaultResolver.LookupIPAddr(ctx, host)
+			if err != nil {
+				return nil, err
+			}
+			for _, ip := range ips {
+				if isPrivateIP(ip.IP) {
+					return nil, fmt.Errorf("request to private IP blocked: %s", ip.IP)
+				}
+			}
+			return (&net.Dialer{}).DialContext(ctx, network, addr)
+		},
+	}
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout:   30 * time.Second,
+		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 10 {
 				return http.ErrUseLastResponse
 			}
-			host := req.URL.Hostname()
-			if ip := net.ParseIP(host); ip != nil && isPrivateIP(ip) {
+			if isPrivateHost(req.Context(), req.URL.Hostname()) {
 				return http.ErrUseLastResponse
 			}
 			return nil

@@ -125,7 +125,7 @@ func saveSavedData(data SavedData) error {
 	dataMutex.Lock()
 	defer dataMutex.Unlock()
 
-	if err := os.MkdirAll(appFolder, os.ModePerm); err != nil {
+	if err := os.MkdirAll(appFolder, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -161,7 +161,7 @@ func (a *App) mutateSavedData(fn func(data *SavedData)) error {
 
 	fn(&data)
 
-	if err := os.MkdirAll(appFolder, os.ModePerm); err != nil {
+	if err := os.MkdirAll(appFolder, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 

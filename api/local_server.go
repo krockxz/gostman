@@ -19,7 +19,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/proxy", handler.Handler)
 
-	addr := ":" + port
+	addr := "127.0.0.1:" + port
 	log.Printf("Starting local proxy server on %s", addr)
 	if err := http.ListenAndServe(addr, mux); err != nil {
 		log.Fatalf("Server failed: %v", err)

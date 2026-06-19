@@ -45,7 +45,7 @@ function CopyButton({ content }) {
 
   const handleCopy = useCallback(() => {
     const text = typeof content === 'object' ? JSON.stringify(content, null, 2) : content
-    navigator.clipboard.writeText(text)
+    navigator.clipboard.writeText(text).catch(err => console.warn('Copy failed:', err))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }, [content])

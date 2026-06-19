@@ -88,6 +88,14 @@ function WebApp() {
     setVariables(loadState(KEYS.VARS, "{}"))
   }, [])
 
+  // Stable callbacks for RequestBar (React.memo)
+  const handleMethodChange = useCallback((val) => updateField('method', val), [updateField])
+  const handleUrlChange = useCallback((val) => updateField('url', val), [updateField])
+  const handleNameChange = useCallback((val) => updateField('name', val), [updateField])
+  const handleHeadersChange = useCallback((val) => updateField('headers', val), [updateField])
+  const handleBodyChange = useCallback((val) => updateField('body', val), [updateField])
+  const handleQueryParamsChange = useCallback((val) => updateField('queryParams', val), [updateField])
+
   // Auto-save to localStorage
   useEffect(() => {
     saveState(KEYS.REQUESTS, requests)
@@ -174,7 +182,7 @@ function WebApp() {
       () => {
         setRequests(prev => prev.filter(r => r.id !== id))
         if (activeRequest.id === id) {
-          handleNewRequest()
+          setActiveRequest({ ...DEFAULT_REQUEST })
         }
       },
       null,
@@ -288,28 +296,35 @@ function WebApp() {
   }, [variables])
 
   const handleImport = useCallback((importData) => {
-    if (!importData) return
+    try {
+      if (!importData) return
 
-    if (importData.requests && Array.isArray(importData.requests)) {
-      setRequests(prev => {
-        const byId = new Map(prev.map(r => [r.id, r]))
-        for (const req of importData.requests) {
-          byId.set(req.id, req)
-        }
-        return Array.from(byId.values())
-      })
-    }
-    if (importData.folders && Array.isArray(importData.folders)) {
-      setFolders(prev => {
-        const byId = new Map(prev.map(f => [f.id, f]))
-        for (const folder of importData.folders) {
-          byId.set(folder.id, folder)
-        }
-        return Array.from(byId.values())
-      })
-    }
-    if (importData.variables && typeof importData.variables === 'object') {
-      setVariables(JSON.stringify(importData.variables, null, 2))
+      let count = 0
+      if (importData.requests && Array.isArray(importData.requests)) {
+        setRequests(prev => {
+          const byId = new Map(prev.map(r => [r.id, r]))
+          for (const req of importData.requests) {
+            byId.set(req.id, req)
+            count++
+          }
+          return Array.from(byId.values())
+        })
+      }
+      if (importData.folders && Array.isArray(importData.folders)) {
+        setFolders(prev => {
+          const byId = new Map(prev.map(f => [f.id, f]))
+          for (const folder of importData.folders) {
+            byId.set(folder.id, folder)
+          }
+          return Array.from(byId.values())
+        })
+      }
+      if (importData.variables && typeof importData.variables === 'object') {
+        setVariables(JSON.stringify(importData.variables, null, 2))
+      }
+      showAlert('Import Complete', `Imported ${count} requests`)
+    } catch (e) {
+      showAlert('Import Error', e.message || 'Failed to import')
     }
   }, [])
 
@@ -367,8 +382,13 @@ function WebApp() {
           'Reset App',
           'Clear all data? This cannot be undone.',
           () => {
-            resetState()
-            showAlert('Success', 'Application state cleared.', 'OK', 'success')
+            try {
+              resetState()
+              showAlert('Success', 'Application state cleared.', 'OK', 'success')
+            } catch (e) {
+              console.warn('Reset error:', e)
+              showAlert('Reset Error', 'Could not clear all data')
+            }
           },
           null,
           'destructive'
@@ -421,8 +441,13 @@ function WebApp() {
                 'Reset App',
                 'Clear all data?',
                 () => {
-                  resetState()
-                  showAlert('Success', 'Cleared!', 'OK', 'success')
+                  try {
+                    resetState()
+                    showAlert('Success', 'Cleared!', 'OK', 'success')
+                  } catch (e) {
+                    console.warn('Reset error:', e)
+                    showAlert('Reset Error', 'Could not clear all data')
+                  }
                 },
                 null,
                 'destructive'
@@ -458,12 +483,12 @@ function WebApp() {
         <div className="flex flex-1 flex-col overflow-hidden">
           <RequestBar
             activeRequest={activeRequest}
-            onMethodChange={(val) => updateField('method', val)}
-            onUrlChange={(val) => updateField('url', val)}
-            onNameChange={(val) => updateField('name', val)}
-            onHeadersChange={(val) => updateField('headers', val)}
-            onBodyChange={(val) => updateField('body', val)}
-            onQueryParamsChange={(val) => updateField('queryParams', val)}
+            onMethodChange={handleMethodChange}
+            onUrlChange={handleUrlChange}
+            onNameChange={handleNameChange}
+            onHeadersChange={handleHeadersChange}
+            onBodyChange={handleBodyChange}
+            onQueryParamsChange={handleQueryParamsChange}
             onSend={handleSend}
             onSave={handleSave}
             onGenerateCode={handleGenerateCode}

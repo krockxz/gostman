@@ -76,6 +76,14 @@ function App() {
   const activeTab = useActiveTab()
   const activeRequest = activeTab?.request || {}
 
+  // Stable callbacks for RequestBar (React.memo)
+  const handleMethodChange = useCallback((val) => updateField('method', val), [updateField])
+  const handleUrlChange = useCallback((val) => updateField('url', val), [updateField])
+  const handleNameChange = useCallback((val) => updateField('name', val), [updateField])
+  const handleHeadersChange = useCallback((val) => updateField('headers', val), [updateField])
+  const handleBodyChange = useCallback((val) => updateField('body', val), [updateField])
+  const handleQueryParamsChange = useCallback((val) => updateField('queryParams', val), [updateField])
+
   // -- Data Loading --
 
   const fetchInitialData = useCallback(async () => {
@@ -210,8 +218,8 @@ function App() {
         activeRequest.queryParams
       )
 
+      updateActiveRequest({ response: resp.body })
       updateActiveTab({
-        request: { ...activeRequest, response: resp.body },
         status: resp.status,
         responseTime: getResponseTime(),
         loading: false,
@@ -222,8 +230,8 @@ function App() {
 
       addToHistory(activeRequest)
     } catch (e) {
+      updateActiveRequest({ response: e.message || String(e) })
       updateActiveTab({
-        request: { ...activeRequest, response: e.message || String(e) },
         status: "Error",
         responseTime: getResponseTime(),
         loading: false,
@@ -436,12 +444,12 @@ function App() {
 
           <RequestBar
             activeRequest={activeRequest}
-            onMethodChange={(val) => updateField('method', val)}
-            onUrlChange={(val) => updateField('url', val)}
-            onNameChange={(val) => updateField('name', val)}
-            onHeadersChange={(val) => updateField('headers', val)}
-            onBodyChange={(val) => updateField('body', val)}
-            onQueryParamsChange={(val) => updateField('queryParams', val)}
+            onMethodChange={handleMethodChange}
+            onUrlChange={handleUrlChange}
+            onNameChange={handleNameChange}
+            onHeadersChange={handleHeadersChange}
+            onBodyChange={handleBodyChange}
+            onQueryParamsChange={handleQueryParamsChange}
             onSend={handleSend}
             onSave={handleSave}
             onGenerateCode={handleGenerateCode}

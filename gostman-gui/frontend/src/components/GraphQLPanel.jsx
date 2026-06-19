@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ChevronDown, ChevronRight, FileJson, Zap, Check, AlertCircle, Sparkles, Code, Wand2, Copy, CheckCircle2 } from "lucide-react"
+import { ChevronRight, FileJson, Check, AlertCircle, Sparkles, Code, Wand2, Copy, CheckCircle2 } from "lucide-react"
 import { Button } from "./ui/button"
 import { Badge } from "./ui/badge"
 import { Textarea } from "./ui/textarea"
@@ -183,7 +183,7 @@ export function GraphQLPanel({
   }
 
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(query)
+    navigator.clipboard.writeText(query).catch(err => console.warn('Copy failed:', err))
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -200,7 +200,7 @@ export function GraphQLPanel({
     }
   }
 
-  const varValidation = validateVariables()
+  const varValidation = useMemo(() => validateVariables(), [variables])
 
   return (
     <motion.div
