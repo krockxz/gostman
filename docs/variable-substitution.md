@@ -93,17 +93,9 @@ Both implementations:
 
 ## Testing
 
-### JavaScript Tests
-```bash
-cd gostman-gui/frontend
-npm test -- variables.test.js
-```
-
-### Go Tests
-```bash
-cd gostman-gui
-go test -v -run TestReplacePlaceholders
-```
+There is currently no test suite for variable substitution. If tests are
+re-added, see `AGENTS.md` for the conventions (Go `*_test.go` in
+`gostman-gui/`, Vitest in `gostman-gui/frontend/`).
 
 ## Examples
 
