@@ -77,6 +77,9 @@ function App() {
   const activeRequest = activeTab?.request || {}
 
   // Stable callbacks for RequestBar (React.memo)
+  const updateField = useCallback((field, value) => {
+    updateActiveRequest({ [field]: value })
+  }, [])
   const handleMethodChange = useCallback((val) => updateField('method', val), [updateField])
   const handleUrlChange = useCallback((val) => updateField('url', val), [updateField])
   const handleNameChange = useCallback((val) => updateField('name', val), [updateField])
@@ -103,12 +106,6 @@ function App() {
   const refreshRequests = useCallback(async () => {
     const reqs = await GetRequests()
     setRequests(reqs || [])
-  }, [])
-
-  // -- Tab Management --
-
-  const updateField = useCallback((field, value) => {
-    updateActiveRequest({ [field]: value })
   }, [])
 
   // Keyboard shortcuts

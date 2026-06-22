@@ -89,6 +89,9 @@ function WebApp() {
   }, [])
 
   // Stable callbacks for RequestBar (React.memo)
+  const updateField = useCallback((field, value) => {
+    setActiveRequest(prev => ({ ...prev, [field]: value }))
+  }, [])
   const handleMethodChange = useCallback((val) => updateField('method', val), [updateField])
   const handleUrlChange = useCallback((val) => updateField('url', val), [updateField])
   const handleNameChange = useCallback((val) => updateField('name', val), [updateField])
@@ -334,10 +337,6 @@ function WebApp() {
 
   const handleBackToLanding = useCallback(() => {
     setShowLanding(true)
-  }, [])
-
-  const updateField = useCallback((field, value) => {
-    setActiveRequest(prev => ({ ...prev, [field]: value }))
   }, [])
 
   // Keyboard shortcuts
